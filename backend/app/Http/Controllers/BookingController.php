@@ -2,47 +2,46 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
+use App\Models\Listing;
 use Illuminate\Http\Request;
 
 class BookingController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    // Get all bookings of logged in user
+    public function index(Request $request)
     {
-        //
+        $bookings = Booking::with('listing')
+            ->where('user_id', $request->user()->id)
+            ->get();
+        return response()->json($bookings);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    // Create a booking
     public function store(Request $request)
     {
-        //
-    }
+        $request->validate([
+            'listing_id' => 'required|exists:listings,id',
+            'check_in'   => 'required|date|after:today',
+            'check_out'  => 'required|date|after:check_in',
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+        // Calculate total price
+        $listing = Listing::findOrFail($request->listing_id);
+        $checkIn  = new \DateTime($request->check_in);
+        $checkOut = new \DateTime($request->check_out);
+        $nights   = $checkIn->diff($checkOut)->days;
+        $total    = $nights * $listing->price_per_night;
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+        $booking = Booking::create([
+            'user_id'     => $request->user()->id,
+            'listing_id'  => $request->listing_id,
+            'check_in'    => $request->check_in,
+            'check_out'   => $request->check_out,
+            'total_price' => $total,
+            'status'      => 'pending'
+        ]);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return response()->json($booking, 201);
     }
 }

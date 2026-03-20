@@ -2,27 +2,78 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Otp;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-    // Register
+    // Step 1 — Send OTP
+    public function sendOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|unique:users,email'
+        ]);
+
+        $otp = rand(100000, 999999);
+
+        Otp::where('email', $request->email)->delete();
+
+        Otp::create([
+            'email'      => $request->email,
+            'otp'        => $otp,
+            'expires_at' => Carbon::now()->addMinutes(10)
+        ]);
+
+        Mail::raw("Your Homeseek OTP code is: $otp (expires in 10 minutes)", function ($message) use ($request) {
+            $message->to($request->email)
+                    ->subject('Your Homeseek OTP Code');
+        });
+
+        return response()->json([
+            'message' => 'OTP sent to your email'
+        ]);
+    }
+
+    // Step 2 — Register with OTP
     public function register(Request $request)
     {
         $request->validate([
             'name'     => 'required|string',
-            'email'    => 'required|email|unique:users',
-            'password' => 'required|min:6'
+            'email'    => 'required|email|unique:users,email',
+            'password' => 'required|min:6',
+            'otp'      => 'required',
+            'role'     => 'required|in:guest,host'
         ]);
+
+        $otpRecord = Otp::where('email', $request->email)
+                        ->where('otp', $request->otp)
+                        ->first();
+
+        if (!$otpRecord) {
+            return response()->json([
+                'message' => 'Invalid OTP'
+            ], 422);
+        }
+
+        if (Carbon::now()->isAfter($otpRecord->expires_at)) {
+            return response()->json([
+                'message' => 'OTP expired, please request a new one'
+            ], 422);
+        }
 
         $user = User::create([
             'name'     => $request->name,
             'email'    => $request->email,
-            'password' => Hash::make($request->password)
+            'password' => Hash::make($request->password),
+            'role'     => $request->role
         ]);
+
+        $otpRecord->delete();
 
         $token = $user->createToken('homeseek')->plainTextToken;
 

@@ -25,10 +25,5 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 }); // ← this was missing!
 
-// Public test route
-Route::get('/boarding-houses', function () {
-    return response()->json([
-        'message' => 'Connected!',
-        'data' => []
-    ]);
-});
+Route::post('/send-otp', [AuthController::class, 'sendOtp']);
+
