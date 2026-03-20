@@ -21,6 +21,13 @@ class ListingController extends Controller
         return response()->json($listing);
     }
 
+    // Get listings of logged in host
+    public function hostListings(Request $request)
+    {
+        $listings = Listing::where('user_id', $request->user()->id)->get();
+        return response()->json($listings);
+    }
+
     // Create listing
     public function store(Request $request)
     {

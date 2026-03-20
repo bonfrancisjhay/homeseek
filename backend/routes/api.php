@@ -23,7 +23,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-}); // ← this was missing!
+    Route::get('/host/listings', [ListingController::class, 'hostListings']);
+}); 
 
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
+Route::post('/check-email', [AuthController::class, 'checkEmail']);
+
 

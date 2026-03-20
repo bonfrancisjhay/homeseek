@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import AuthModal from './AuthModal';
 
 function Navbar() {
+    const [hoverHost, setHoverHost] = useState(false);
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user'));
@@ -35,17 +36,36 @@ function Navbar() {
                 <div style={styles.right}>
                     {token ? (
                         <>
-                            <Link to="/create-listing" style={styles.hostBtn}>
-                                + List Property
-                            </Link>
+                            {user?.role === 'host' ? (
+                                // Host links
+                                <>
+                                    <Link to="/host/dashboard" style={styles.dashboardBtn}>
+                                        Dashboard
+                                    </Link>
+                                    <Link to="/create-listing" style={styles.hostBtn}>
+                                        + List Property
+                                    </Link>
+                                </>
+                            ) : (
+                                // Guest links — nothing extra for now
+                                null
+                            )}
                             <span style={styles.userName}>Hi, {user?.name}</span>
                             <button onClick={handleLogout} style={styles.logoutBtn}>
                                 Logout
                             </button>
                         </>
                     ) : (
-                        <Link to="/register" style={styles.hostBtn}>
-                            Become a Host
+                        <Link
+                            to="/register"
+                            style={{
+                                ...styles.hostBtn,
+                                ...(hoverHost ? styles.hostBtnHover : {})
+                            }}
+                            onMouseEnter={() => setHoverHost(true)}
+                            onMouseLeave={() => setHoverHost(false)}
+                        >
+                            Become a host
                         </Link>
                     )}
                 </div>
@@ -84,7 +104,11 @@ const styles = {
         padding: '10px 20px',
         borderRadius: '20px',
         fontSize: '14px',
-        fontWeight: '600'
+        fontWeight: '600',
+        transition: 'background 0.2s'
+    },
+    hostBtnHover: {
+        background: '#e0314f',
     },
     userName: {
         fontSize: '14px',
