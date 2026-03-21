@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthModal from './AuthModal';
+import logo from '../assets/homeseek_logo_prototype.png';
 
 function Navbar() {
     const [hoverHost, setHoverHost] = useState(false);
@@ -30,7 +31,9 @@ function Navbar() {
 
             <nav style={styles.nav}>
                 {/* Logo */}
-                <Link to="/" style={styles.logo}>🏠 Homeseek</Link>
+                <Link to="/" style={styles.logo}>
+                    <img src={logo} alt="Homeseek" style={styles.logoImg} />
+                </Link>
 
                 {/* Right side */}
                 <div style={styles.right}>
@@ -79,18 +82,13 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '16px 32px',
+        padding: '0 32px',
         borderBottom: '1px solid #eee',
         backgroundColor: '#fff',
         position: 'sticky',
         top: 0,
-        zIndex: 100
-    },
-    logo: {
-        fontSize: '22px',
-        fontWeight: 'bold',
-        textDecoration: 'none',
-        color: '#ff385c'
+        zIndex: 100,
+        height: '72px', 
     },
     right: {
         display: 'flex',
@@ -98,8 +96,7 @@ const styles = {
         gap: '16px'
     },
     hostBtn: {
-        background: '#ff385c',
-        color: '#fff',
+        color: '#444444',
         textDecoration: 'none',
         padding: '10px 20px',
         borderRadius: '20px',
@@ -108,12 +105,22 @@ const styles = {
         transition: 'background 0.2s'
     },
     hostBtnHover: {
-        background: '#e0314f',
+        background: '#dddddd',
     },
     userName: {
         fontSize: '14px',
         color: '#444',
         fontWeight: '500'
+    },
+    logo: {
+    textDecoration: 'none',
+    display: 'flex',
+    alignItems: 'center'
+    },
+    logoImg: {
+        height: '120px',    // ← adjust this to make it bigger or smaller
+        width: 'auto',
+        objectFit: 'contain'
     },
     logoutBtn: {
         background: 'none',
