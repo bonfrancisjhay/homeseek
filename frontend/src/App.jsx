@@ -6,15 +6,17 @@ import Listings from './pages/Listings';
 import CreateListing from './pages/CreateListing';
 import ListingDetail from './pages/ListingDetail';
 import HostDashboard from './pages/host/Dashboard';
-import api from './services/api'
+import { useState } from 'react';
+
 
 
 function App() {
+  const [searchFilter, setSearchFilter] = useState('');
   return (
     <BrowserRouter>
-    <Navbar />
+    <Navbar onSearch={(params) => setSearchFilter(params.location)} />  
       <Routes>
-        <Route path="/" element={<Listings/>} />
+        <Route path="/" element={<Listings searchFilter={searchFilter} />} />
         <Route path="/login" element={<Login/>} />
         <Route path="/register" element={<Auth/>} />
         <Route path="/createlisting" element={<CreateListing/>} />
