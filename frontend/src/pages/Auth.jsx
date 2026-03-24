@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import logo from '../assets/homeseek_logo_bg.png';
 
 function Auth() {
     const navigate = useNavigate();
@@ -115,7 +116,9 @@ function Auth() {
             <div style={styles.card}>
 
                 {/* Logo */}
-                <div style={styles.logoBox}>🏠</div>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80px', marginBottom: '8px' }}>
+                    <img src={logo} alt="Logo" style={{ height: '100%', width: 'auto', objectFit: 'contain' }} />
+                </div>
 
                 {/* Step 1 — Email */}
                 {step === 1 && (
@@ -303,21 +306,24 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: '#fff',
         padding: '40px 24px'
     },
     card: {
         background: '#fff',
+        border: '1px solid #ddd',
         padding: '40px',
-        borderRadius: '16px',
+        borderRadius: '20px',
         width: '100%',
-        maxWidth: '440px',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.2)'
+        maxWidth: '520px',
+        boxShadow: '0 4px 32px rgba(0,0,0,0.08)',
+        overflow: 'hidden'
     },
     logoBox: {
         fontSize: '36px',
         textAlign: 'center',
-        marginBottom: '16px'
+        marginBottom: '16px',
+        height: '100px'
     },
     title: {
         fontSize: '22px',
@@ -366,7 +372,7 @@ const styles = {
     btn: {
         width: '100%',
         padding: '14px',
-        background: '#ff385c',
+        background: '#2196f3',
         color: '#fff',
         border: 'none',
         borderRadius: '8px',
