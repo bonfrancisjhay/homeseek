@@ -10,7 +10,7 @@ function Auth() {
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [form, setForm] = useState({
-        name: '', password: '', role: 'guest'
+        name: '', password: '', role: 'host'
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -262,7 +262,7 @@ function Auth() {
                                     required
                                 />
                             </div>
-                            <div style={styles.field}>
+                            {/* <div style={styles.field}>
                                 <label style={styles.label}>I am a</label>
                                 <select
                                     style={styles.input}
@@ -273,7 +273,7 @@ function Auth() {
                                     <option value="guest">Guest — I want to book</option>
                                     <option value="host">Host — I want to list</option>
                                 </select>
-                            </div>
+                            </div> */}
                             <button
                                 type="submit"
                                 style={styles.btn}

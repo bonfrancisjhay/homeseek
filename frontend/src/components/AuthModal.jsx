@@ -4,8 +4,11 @@ import api from '../services/api';
 
 function AuthModal({ onClose, onSuccess }) {
     const navigate = useNavigate();
-    const [mode, setMode] = useState('login');
-    const [form, setForm] = useState({ name: '', email: '', password: '', role: 'guest' });
+    const [step, setStep] = useState(1);
+    const [mode, setMode] = useState('');
+    const [email, setEmail] = useState('');
+    const [otp, setOtp] = useState('');
+    const [form, setForm] = useState({ name: '', password: '', role: 'guest' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -13,16 +16,20 @@ function AuthModal({ onClose, onSuccess }) {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async (e) => {
+    const handleCheckEmail = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
         try {
-            const endpoint = mode === 'login' ? '/login' : '/register';
-            const res = await api.post(endpoint, form);
-            localStorage.setItem('token', res.data.token);
-            localStorage.setItem('user', JSON.stringify(res.data.user));
-            onSuccess();
+            const res = await api.post('/check-email', { email });
+            if (res.data.exists) {
+                setMode('login');
+                setStep(2);
+            } else {
+                await api.post('/send-otp', { email });
+                setMode('register');
+                setStep(2);
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Something went wrong');
         } finally {
@@ -30,109 +37,214 @@ function AuthModal({ onClose, onSuccess }) {
         }
     };
 
+    const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+        const res = await api.post('/login', { email, password: form.password });
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+
+        const role = res.data.user.role;
+
+        if (role === 'host') {
+            // Host tried to login through guest modal — block it
+            setError('You are a host. Please use the host login page.');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            return;
+        }
+
+        onSuccess?.();
+        navigate('/');
+        window.location.reload();
+    } catch (err) {
+        setError(err.response?.data?.message || 'Invalid password');
+    } finally {
+        setLoading(false);
+    }
+};
+
+    const handleVerifyOtp = async (e) => {
+        e.preventDefault();
+        if (otp.length !== 6) {
+            setError('Please enter a valid 6-digit OTP');
+            return;
+        }
+        setError('');
+        setStep(3);
+    };
+
+    const handleRegister = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        try {
+            const res = await api.post('/register', { ...form, email, otp });
+            localStorage.setItem('token', res.data.token);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
+            onSuccess?.();
+            const role = res.data.user.role;
+            navigate(role === 'host' ? '/host/dashboard' : '/');
+            window.location.reload();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Registration failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const stepCount = mode === 'register' ? 3 : 2;
+
     return (
         <>
             <div onClick={onClose} style={styles.backdrop} />
             <div style={styles.modal}>
+
+                {/* Header */}
                 <div style={styles.header}>
                     <button onClick={onClose} style={styles.close}>✕</button>
                     <h3 style={styles.headerTitle}>
-                        {mode === 'login' ? 'Log in' : 'Sign up'}
+                        {step === 1 && 'Log in or sign up'}
+                        {step === 2 && mode === 'login' && 'Welcome back'}
+                        {step === 2 && mode === 'register' && 'Check your email'}
+                        {step === 3 && 'Sign up'}
                     </h3>
-                    <span />
+                    <span style={{ width: 28 }} />
                 </div>
 
                 <div style={styles.body}>
-                    <h2 style={styles.title}>
-                        {mode === 'login' ? 'Welcome back' : 'Create your account'}
-                    </h2>
+
+                    {/* Step dots */}
+                    <div style={styles.dots}>
+                        {Array.from({ length: stepCount }).map((_, i) => (
+                            <div key={i} style={{
+                                ...styles.dot,
+                                background: i < step ? '#2196f3' : '#ddd'
+                            }} />
+                        ))}
+                    </div>
 
                     {error && <p style={styles.error}>{error}</p>}
 
-                    {/* Google Button */}
-                    <button style={styles.googleBtn}>
-                        <img
-                            src="https://www.google.com/favicon.ico"
-                            width="18"
-                            height="18"
-                            alt="Google"
-                        />
-                        Continue with Google
-                    </button>
+                    {/* Step 1 — Email */}
+                    {step === 1 && (
+                        <>
+                            <h2 style={styles.title}>Log in or sign up</h2>
+                            <p style={styles.sub}>Enter your email to continue</p>
+                            <form onSubmit={handleCheckEmail}>
+                                <div style={styles.field}>
+                                    <label style={styles.label}>Email address</label>
+                                    <input
+                                        style={styles.input}
+                                        type="email"
+                                        placeholder="you@example.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <button style={styles.btn} disabled={loading}>
+                                    {loading ? 'Checking...' : 'Continue'}
+                                </button>
+                            </form>
+                        </>
+                    )}
 
-                    <div style={styles.divider}>
-                        <span style={styles.dividerLine} />
-                        <span style={styles.dividerText}>or</span>
-                        <span style={styles.dividerLine} />
-                    </div>
+                    {/* Step 2 — Login */}
+                    {step === 2 && mode === 'login' && (
+                        <>
+                            <h2 style={styles.title}>Welcome back!</h2>
+                            <p style={styles.sub}>Logging in as <strong>{email}</strong></p>
+                            <form onSubmit={handleLogin}>
+                                <div style={styles.field}>
+                                    <label style={styles.label}>Password</label>
+                                    <input
+                                        style={styles.input}
+                                        type="password"
+                                        name="password"
+                                        placeholder="Enter your password"
+                                        value={form.password}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                                <button style={styles.btn} disabled={loading}>
+                                    {loading ? 'Logging in...' : 'Log in'}
+                                </button>
+                                <button type="button" style={styles.backBtn}
+                                    onClick={() => { setStep(1); setError(''); }}>
+                                    ← Change email
+                                </button>
+                            </form>
+                        </>
+                    )}
 
-                    <form onSubmit={handleSubmit}>
-                        {mode === 'register' && (
-                            <div style={styles.field}>
-                                <input
-                                    style={styles.input}
-                                    type="text"
-                                    name="name"
-                                    placeholder="Full name"
-                                    value={form.name}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-                        )}
-                        <div style={styles.field}>
-                            <input
-                                style={styles.input}
-                                type="email"
-                                name="email"
-                                placeholder="Email"
-                                value={form.email}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        <div style={styles.field}>
-                            <input
-                                style={styles.input}
-                                type="password"
-                                name="password"
-                                placeholder="Password"
-                                value={form.password}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        {mode === 'register' && (
-                            <div style={styles.field}>
-                                <select
-                                    style={styles.input}
-                                    name="role"
-                                    value={form.role}
-                                    onChange={handleChange}
-                                >
-                                    <option value="guest">Guest — I want to book</option>
-                                    <option value="host">Host — I want to list</option>
-                                </select>
-                            </div>
-                        )}
-                        <button
-                            type="submit"
-                            style={styles.submitBtn}
-                            disabled={loading}
-                        >
-                            {loading ? 'Please wait...' : mode === 'login' ? 'Log in' : 'Sign up'}
-                        </button>
-                    </form>
+                    {/* Step 2 — OTP */}
+                    {step === 2 && mode === 'register' && (
+                        <>
+                            <h2 style={styles.title}>Check your email</h2>
+                            <p style={styles.sub}>We sent a 6-digit code to <strong>{email}</strong></p>
+                            <form onSubmit={handleVerifyOtp}>
+                                <div style={styles.field}>
+                                    <input
+                                        style={{ ...styles.input, ...styles.otpInput }}
+                                        type="text"
+                                        placeholder="000000"
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value)}
+                                        maxLength={6}
+                                        required
+                                    />
+                                </div>
+                                <button style={styles.btn} disabled={loading}>
+                                    {loading ? 'Verifying...' : 'Verify OTP'}
+                                </button>
+                                <button type="button" style={styles.backBtn}
+                                    onClick={() => { setStep(1); setError(''); setOtp(''); }}>
+                                    ← Change email
+                                </button>
+                            </form>
+                        </>
+                    )}
 
-                    <p style={styles.switchText}>
-                        {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-                        <button
-                            style={styles.switchBtn}
-                            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-                        >
-                            {mode === 'login' ? 'Sign up' : 'Log in'}
-                        </button>
-                    </p>
+                    {/* Step 3 — Register */}
+                    {step === 3 && (
+                        <>
+                            <h2 style={styles.title}>Finish signing up</h2>
+                            <p style={styles.sub}>Tell us a bit about yourself</p>
+                            <form onSubmit={handleRegister}>
+                                <div style={styles.field}>
+                                    <label style={styles.label}>Full name</label>
+                                    <input style={styles.input} type="text" name="name"
+                                        placeholder="John Doe" value={form.name}
+                                        onChange={handleChange} required />
+                                </div>
+                                <div style={styles.field}>
+                                    <label style={styles.label}>Password</label>
+                                    <input style={styles.input} type="password" name="password"
+                                        placeholder="Minimum 6 characters" value={form.password}
+                                        onChange={handleChange} required />
+                                </div>
+                                {/* <div style={styles.field}>
+                                    <label style={styles.label}>I am a</label>
+                                    <select style={styles.input} name="role"
+                                        value={form.role} onChange={handleChange}>
+                                        <option value="guest">Guest — I want to book</option>
+                                        <option value="host">Host — I want to list</option>
+                                    </select>
+                                </div> */}
+                                <button style={styles.btn} disabled={loading}>
+                                    {loading ? 'Creating account...' : 'Create account'}
+                                </button>
+                                <button type="button" style={styles.backBtn}
+                                    onClick={() => { setStep(2); setError(''); }}>
+                                    ← Back
+                                </button>
+                            </form>
+                        </>
+                    )}
                 </div>
             </div>
         </>
@@ -142,78 +254,60 @@ function AuthModal({ onClose, onSuccess }) {
 const styles = {
     backdrop: {
         position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        zIndex: 200
+        background: 'rgba(0,0,0,0.5)', zIndex: 200
     },
     modal: {
-        position: 'fixed',
-        top: '50%', left: '50%',
+        position: 'fixed', top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
-        background: '#fff',
-        borderRadius: '16px',
-        width: '100%',
-        maxWidth: '480px',
-        zIndex: 201,
-        boxShadow: '0 8px 40px rgba(0,0,0,0.2)'
+        background: '#fff', borderRadius: '16px',
+        width: '100%', maxWidth: '480px',
+        zIndex: 201, boxShadow: '0 8px 40px rgba(0,0,0,0.2)'
     },
     header: {
-        display: 'flex',
-        alignItems: 'center',
+        display: 'flex', alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '16px 24px',
+        padding: '14px 20px',
         borderBottom: '1px solid #eee'
     },
-    headerTitle: { fontSize: '15px', fontWeight: '600', color: '#222' },
+    headerTitle: { fontSize: '14px', fontWeight: '500', color: '#222', margin: 0 },
     close: {
         background: 'none', border: 'none',
         fontSize: '16px', cursor: 'pointer',
-        color: '#222', padding: '4px 8px',
-        borderRadius: '50%'
+        color: '#222', padding: '4px 8px', borderRadius: '50%'
     },
     body: { padding: '24px' },
-    title: { fontSize: '22px', fontWeight: 'bold', color: '#222', marginBottom: '20px' },
+    dots: { display: 'flex', gap: '6px', marginBottom: '20px' },
+    dot: { flex: 1, height: '3px', borderRadius: '2px' },
+    title: { fontSize: '20px', fontWeight: 'bold', color: '#222', margin: '0 0 4px' },
+    sub: { fontSize: '13px', color: '#666', margin: '0 0 18px' },
     error: {
-        background: '#fff0f0', color: '#e00',
+        background: '#fff0f0', color: '#d32f2f',
         padding: '10px', borderRadius: '8px',
-        marginBottom: '16px', fontSize: '13px'
+        marginBottom: '14px', fontSize: '13px'
     },
-    googleBtn: {
-        width: '100%', padding: '12px',
-        border: '1px solid #ddd', borderRadius: '8px',
-        background: '#fff', cursor: 'pointer',
-        fontSize: '15px', fontWeight: '500',
-        display: 'flex', alignItems: 'center',
-        justifyContent: 'center', gap: '10px',
-        marginBottom: '16px', color: '#222'
-    },
-    divider: {
-        display: 'flex', alignItems: 'center',
-        gap: '12px', marginBottom: '16px'
-    },
-    dividerLine: { flex: 1, height: '1px', background: '#eee' },
-    dividerText: { fontSize: '13px', color: '#888' },
     field: { marginBottom: '12px' },
+    label: { display: 'block', fontSize: '12px', color: '#666', marginBottom: '5px' },
     input: {
-        width: '100%', padding: '12px 14px',
+        width: '100%', padding: '11px 13px',
         border: '1px solid #ddd', borderRadius: '8px',
         fontSize: '14px', boxSizing: 'border-box', outline: 'none'
     },
-    submitBtn: {
-        width: '100%', padding: '13px',
-        background: '#ff385c', color: '#fff',
+    otpInput: {
+        textAlign: 'center', fontSize: '22px',
+        letterSpacing: '8px', fontWeight: '500'
+    },
+    btn: {
+        width: '100%', padding: '12px',
+        background: '#2196f3', color: '#fff',
         border: 'none', borderRadius: '8px',
-        fontSize: '15px', fontWeight: '600',
+        fontSize: '14px', fontWeight: '600',
         cursor: 'pointer', marginTop: '4px'
     },
-    switchText: {
-        textAlign: 'center', marginTop: '16px',
-        fontSize: '14px', color: '#444'
-    },
-    switchBtn: {
+    backBtn: {
         background: 'none', border: 'none',
-        color: '#ff385c', fontWeight: '600',
-        cursor: 'pointer', fontSize: '14px',
-        textDecoration: 'underline'
+        color: '#888', fontSize: '13px',
+        cursor: 'pointer', padding: '8px 0 0',
+        display: 'block'
     }
 };
 

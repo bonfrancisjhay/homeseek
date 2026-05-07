@@ -139,7 +139,7 @@ function Navbar({ onSearch }) {
 
                 {/* Top row */}
                 <div style={styles.topRow}>
-                    <Link to="/" style={styles.logo}>
+                    <Link to={user?.role === 'host' ? '/host/dashboard' : '/'} style={styles.logo}>
                         <img src={logo} alt="Homeseek" style={styles.logoImg} />
                     </Link>
 
@@ -168,16 +168,12 @@ function Navbar({ onSearch }) {
                     {/* Right */}
                     <div style={styles.right}>
                         {token ? (
-                            <>
-                                {user?.role === 'host' && (
-                                    <>
-                                        <Link to="/host/dashboard" style={styles.navLink}>Dashboard</Link>
-                                        <Link to="/create-listing" style={styles.hostBtn}>+ List Property</Link>
-                                    </>
-                                )}
-                                <span style={styles.userName}>Hi, {user?.name}</span>
+    <>
+                            <span style={styles.userName}>Hi, {user?.name}</span>
+                            {user?.role !== 'host' && (
                                 <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
-                            </>
+                            )}
+                        </>
                         ) : (
                             <Link
                                 to="/register"
