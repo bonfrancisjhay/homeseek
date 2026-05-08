@@ -5,7 +5,7 @@ import Auth from './pages/Auth';
 import Listings from './pages/Listings';
 import CreateListing from './pages/CreateListing';
 import ListingDetail from './pages/ListingDetail';
-import HostDashboard from './pages/host/Dashboard';
+import HostDashboard from './pages/host/HostDashboard';
 import { useState } from 'react';
 
 
