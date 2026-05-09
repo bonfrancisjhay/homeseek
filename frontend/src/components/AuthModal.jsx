@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import './AuthModal.css';
+
+const RESEND_COOLDOWN = 60;
 
 function AuthModal({ onClose, onSuccess }) {
     const navigate = useNavigate();
@@ -11,6 +14,49 @@ function AuthModal({ onClose, onSuccess }) {
     const [form, setForm] = useState({ name: '', password: '', role: 'guest' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN);
+    const [resendLoading, setResendLoading] = useState(false);
+    const [resendSuccess, setResendSuccess] = useState(false);
+    const cooldownTimer = useRef(null);
+
+    useEffect(() => {
+        if (step === 2 && mode === 'register') {
+            startCooldown();
+        }
+        return () => clearInterval(cooldownTimer.current);
+    }, [step, mode]);
+
+    const startCooldown = () => {
+        setResendCooldown(RESEND_COOLDOWN);
+        setResendSuccess(false);
+        clearInterval(cooldownTimer.current);
+        cooldownTimer.current = setInterval(() => {
+            setResendCooldown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(cooldownTimer.current);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const handleResendOtp = async () => {
+        setResendLoading(true);
+        setResendSuccess(false);
+        setError('');
+        try {
+            await api.post('/send-otp', { email });
+            setResendSuccess(true);
+            setOtp('');
+            startCooldown();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to resend OTP. Try again.');
+        } finally {
+            setResendLoading(false);
+        }
+    };
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -38,33 +84,31 @@ function AuthModal({ onClose, onSuccess }) {
     };
 
     const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-        const res = await api.post('/login', { email, password: form.password });
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        try {
+            const res = await api.post('/login', { email, password: form.password });
+            localStorage.setItem('token', res.data.token);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
 
-        const role = res.data.user.role;
+            const role = res.data.user.role;
+            if (role === 'host') {
+                setError('You are a host. Please use the host login page.');
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                return;
+            }
 
-        if (role === 'host') {
-            // Host tried to login through guest modal — block it
-            setError('You are a host. Please use the host login page.');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            return;
+            onSuccess?.();
+            navigate('/');
+            window.location.reload();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Invalid password');
+        } finally {
+            setLoading(false);
         }
-
-        onSuccess?.();
-        navigate('/');
-        window.location.reload();
-    } catch (err) {
-        setError(err.response?.data?.message || 'Invalid password');
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
@@ -72,8 +116,16 @@ function AuthModal({ onClose, onSuccess }) {
             setError('Please enter a valid 6-digit OTP');
             return;
         }
+        setLoading(true);
         setError('');
-        setStep(3);
+        try {
+            await api.post('/verify-otp', { email, otp });
+            setStep(3);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Invalid or expired OTP. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleRegister = async (e) => {
@@ -99,13 +151,13 @@ function AuthModal({ onClose, onSuccess }) {
 
     return (
         <>
-            <div onClick={onClose} style={styles.backdrop} />
-            <div style={styles.modal}>
+            <div onClick={onClose} className="backdrop" />
+            <div className="modal">
 
                 {/* Header */}
-                <div style={styles.header}>
-                    <button onClick={onClose} style={styles.close}>✕</button>
-                    <h3 style={styles.headerTitle}>
+                <div className="modal-header">
+                    <button onClick={onClose} className="modal-close">✕</button>
+                    <h3 className="modal-header-title">
                         {step === 1 && 'Log in or sign up'}
                         {step === 2 && mode === 'login' && 'Welcome back'}
                         {step === 2 && mode === 'register' && 'Check your email'}
@@ -114,30 +166,27 @@ function AuthModal({ onClose, onSuccess }) {
                     <span style={{ width: 28 }} />
                 </div>
 
-                <div style={styles.body}>
+                <div className="modal-body">
 
                     {/* Step dots */}
-                    <div style={styles.dots}>
+                    <div className="step-dots">
                         {Array.from({ length: stepCount }).map((_, i) => (
-                            <div key={i} style={{
-                                ...styles.dot,
-                                background: i < step ? '#2196f3' : '#ddd'
-                            }} />
+                            <div key={i} className={`step-dot ${i < step ? 'active' : ''}`} />
                         ))}
                     </div>
 
-                    {error && <p style={styles.error}>{error}</p>}
+                    {error && <p className="modal-error">{error}</p>}
 
                     {/* Step 1 — Email */}
                     {step === 1 && (
                         <>
-                            <h2 style={styles.title}>Log in or sign up</h2>
-                            <p style={styles.sub}>Enter your email to continue</p>
+                            <h2 className="modal-title">Log in or sign up</h2>
+                            <p className="modal-sub">Enter your email to continue</p>
                             <form onSubmit={handleCheckEmail}>
-                                <div style={styles.field}>
-                                    <label style={styles.label}>Email address</label>
+                                <div className="form-field">
+                                    <label className="form-label">Email address</label>
                                     <input
-                                        style={styles.input}
+                                        className="form-input"
                                         type="email"
                                         placeholder="you@example.com"
                                         value={email}
@@ -145,7 +194,7 @@ function AuthModal({ onClose, onSuccess }) {
                                         required
                                     />
                                 </div>
-                                <button style={styles.btn} disabled={loading}>
+                                <button className="btn-primary" disabled={loading}>
                                     {loading ? 'Checking...' : 'Continue'}
                                 </button>
                             </form>
@@ -155,13 +204,13 @@ function AuthModal({ onClose, onSuccess }) {
                     {/* Step 2 — Login */}
                     {step === 2 && mode === 'login' && (
                         <>
-                            <h2 style={styles.title}>Welcome back!</h2>
-                            <p style={styles.sub}>Logging in as <strong>{email}</strong></p>
+                            <h2 className="modal-title">Welcome back!</h2>
+                            <p className="modal-sub">Logging in as <strong>{email}</strong></p>
                             <form onSubmit={handleLogin}>
-                                <div style={styles.field}>
-                                    <label style={styles.label}>Password</label>
+                                <div className="form-field">
+                                    <label className="form-label">Password</label>
                                     <input
-                                        style={styles.input}
+                                        className="form-input"
                                         type="password"
                                         name="password"
                                         placeholder="Enter your password"
@@ -170,10 +219,10 @@ function AuthModal({ onClose, onSuccess }) {
                                         required
                                     />
                                 </div>
-                                <button style={styles.btn} disabled={loading}>
+                                <button className="btn-primary" disabled={loading}>
                                     {loading ? 'Logging in...' : 'Log in'}
                                 </button>
-                                <button type="button" style={styles.backBtn}
+                                <button type="button" className="btn-back"
                                     onClick={() => { setStep(1); setError(''); }}>
                                     ← Change email
                                 </button>
@@ -184,24 +233,49 @@ function AuthModal({ onClose, onSuccess }) {
                     {/* Step 2 — OTP */}
                     {step === 2 && mode === 'register' && (
                         <>
-                            <h2 style={styles.title}>Check your email</h2>
-                            <p style={styles.sub}>We sent a 6-digit code to <strong>{email}</strong></p>
+                            <h2 className="modal-title">Check your email</h2>
+                            <p className="modal-sub">We sent a 6-digit code to <strong>{email}</strong></p>
                             <form onSubmit={handleVerifyOtp}>
-                                <div style={styles.field}>
+                                <div className="form-field">
                                     <input
-                                        style={{ ...styles.input, ...styles.otpInput }}
+                                        className="form-input otp"
                                         type="text"
                                         placeholder="000000"
                                         value={otp}
-                                        onChange={(e) => setOtp(e.target.value)}
+                                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                                         maxLength={6}
                                         required
                                     />
                                 </div>
-                                <button style={styles.btn} disabled={loading}>
+
+                                {/* Resend section */}
+                                <div className="resend-box">
+                                    <p className="resend-hint">
+                                        Didn't receive the code? Check your spam folder or request a new one.
+                                    </p>
+                                    {resendSuccess && (
+                                        <p className="resend-success">
+                                            ✓ A new code was sent to {email}
+                                        </p>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="resend-btn"
+                                        onClick={handleResendOtp}
+                                        disabled={resendCooldown > 0 || resendLoading}
+                                    >
+                                        {resendLoading
+                                            ? 'Sending...'
+                                            : resendCooldown > 0
+                                                ? `Resend code in ${resendCooldown}s`
+                                                : 'Resend code'}
+                                    </button>
+                                </div>
+
+                                <button className="btn-primary" disabled={loading}>
                                     {loading ? 'Verifying...' : 'Verify OTP'}
                                 </button>
-                                <button type="button" style={styles.backBtn}
+                                <button type="button" className="btn-back"
                                     onClick={() => { setStep(1); setError(''); setOtp(''); }}>
                                     ← Change email
                                 </button>
@@ -212,33 +286,25 @@ function AuthModal({ onClose, onSuccess }) {
                     {/* Step 3 — Register */}
                     {step === 3 && (
                         <>
-                            <h2 style={styles.title}>Finish signing up</h2>
-                            <p style={styles.sub}>Tell us a bit about yourself</p>
+                            <h2 className="modal-title">Finish signing up</h2>
+                            <p className="modal-sub">Tell us a bit about yourself</p>
                             <form onSubmit={handleRegister}>
-                                <div style={styles.field}>
-                                    <label style={styles.label}>Full name</label>
-                                    <input style={styles.input} type="text" name="name"
+                                <div className="form-field">
+                                    <label className="form-label">Full name</label>
+                                    <input className="form-input" type="text" name="name"
                                         placeholder="John Doe" value={form.name}
                                         onChange={handleChange} required />
                                 </div>
-                                <div style={styles.field}>
-                                    <label style={styles.label}>Password</label>
-                                    <input style={styles.input} type="password" name="password"
+                                <div className="form-field">
+                                    <label className="form-label">Password</label>
+                                    <input className="form-input" type="password" name="password"
                                         placeholder="Minimum 6 characters" value={form.password}
                                         onChange={handleChange} required />
                                 </div>
-                                {/* <div style={styles.field}>
-                                    <label style={styles.label}>I am a</label>
-                                    <select style={styles.input} name="role"
-                                        value={form.role} onChange={handleChange}>
-                                        <option value="guest">Guest — I want to book</option>
-                                        <option value="host">Host — I want to list</option>
-                                    </select>
-                                </div> */}
-                                <button style={styles.btn} disabled={loading}>
+                                <button className="btn-primary" disabled={loading}>
                                     {loading ? 'Creating account...' : 'Create account'}
                                 </button>
-                                <button type="button" style={styles.backBtn}
+                                <button type="button" className="btn-back"
                                     onClick={() => { setStep(2); setError(''); }}>
                                     ← Back
                                 </button>
@@ -250,65 +316,5 @@ function AuthModal({ onClose, onSuccess }) {
         </>
     );
 }
-
-const styles = {
-    backdrop: {
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.5)', zIndex: 200
-    },
-    modal: {
-        position: 'fixed', top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: '#fff', borderRadius: '16px',
-        width: '100%', maxWidth: '480px',
-        zIndex: 201, boxShadow: '0 8px 40px rgba(0,0,0,0.2)'
-    },
-    header: {
-        display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '14px 20px',
-        borderBottom: '1px solid #eee'
-    },
-    headerTitle: { fontSize: '14px', fontWeight: '500', color: '#222', margin: 0 },
-    close: {
-        background: 'none', border: 'none',
-        fontSize: '16px', cursor: 'pointer',
-        color: '#222', padding: '4px 8px', borderRadius: '50%'
-    },
-    body: { padding: '24px' },
-    dots: { display: 'flex', gap: '6px', marginBottom: '20px' },
-    dot: { flex: 1, height: '3px', borderRadius: '2px' },
-    title: { fontSize: '20px', fontWeight: 'bold', color: '#222', margin: '0 0 4px' },
-    sub: { fontSize: '13px', color: '#666', margin: '0 0 18px' },
-    error: {
-        background: '#fff0f0', color: '#d32f2f',
-        padding: '10px', borderRadius: '8px',
-        marginBottom: '14px', fontSize: '13px'
-    },
-    field: { marginBottom: '12px' },
-    label: { display: 'block', fontSize: '12px', color: '#666', marginBottom: '5px' },
-    input: {
-        width: '100%', padding: '11px 13px',
-        border: '1px solid #ddd', borderRadius: '8px',
-        fontSize: '14px', boxSizing: 'border-box', outline: 'none'
-    },
-    otpInput: {
-        textAlign: 'center', fontSize: '22px',
-        letterSpacing: '8px', fontWeight: '500'
-    },
-    btn: {
-        width: '100%', padding: '12px',
-        background: '#2196f3', color: '#fff',
-        border: 'none', borderRadius: '8px',
-        fontSize: '14px', fontWeight: '600',
-        cursor: 'pointer', marginTop: '4px'
-    },
-    backBtn: {
-        background: 'none', border: 'none',
-        color: '#888', fontSize: '13px',
-        cursor: 'pointer', padding: '8px 0 0',
-        display: 'block'
-    }
-};
 
 export default AuthModal;

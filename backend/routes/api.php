@@ -28,5 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/check-email', [AuthController::class, 'checkEmail']);
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp']); 
+
 
 

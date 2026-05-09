@@ -39,6 +39,29 @@ class AuthController extends Controller
         ]);
     }
 
+    public function verifyOtp(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'otp'   => 'required|digits:6',
+    ]);
+
+    $otpRecord = Otp::where('email', $request->email)
+                    ->where('otp', $request->otp)
+                    ->first();
+
+    if (!$otpRecord) {
+        return response()->json(['message' => 'Invalid OTP'], 422);
+    }
+
+    if (Carbon::now()->isAfter($otpRecord->expires_at)) {
+        $otpRecord->delete();
+        return response()->json(['message' => 'OTP expired, please request a new one'], 422);
+    }
+
+    return response()->json(['success' => true]);
+}
+
 
         // Check if email exists
 public function checkEmail(Request $request)
@@ -75,7 +98,9 @@ public function checkEmail(Request $request)
             ], 422);
         }
 
+        
         if (Carbon::now()->isAfter($otpRecord->expires_at)) {
+            $otpRecord->delete();
             return response()->json([
                 'message' => 'OTP expired, please request a new one'
             ], 422);
