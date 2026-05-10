@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Otp;
 use App\Models\User;
+use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -112,6 +113,16 @@ public function checkEmail(Request $request)
             'password' => Hash::make($request->password),
             'role'     => $request->role
         ]);
+
+        if ($user->role === 'host') {
+            Subscription::create([
+                'user_id'         => $user->id,
+                'status'          => 'trialing',
+                'trial_starts_at' => Carbon::now(),
+                'trial_ends_at'   => Carbon::now()->addDays(14),
+                'plan'            => 'free_trial',
+            ]);
+        }
 
         $otpRecord->delete();
 
