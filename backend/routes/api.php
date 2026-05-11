@@ -5,8 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\BookingController;
-use App\Http\Controllers\Subscription\PayMongoController;  // ✅ ADD (for later)
-use App\Http\Controllers\Subscription\TrialController;     // ✅ ADD (for later)
+use App\Http\Controllers\Subscription\PayMongoController;  
+use App\Http\Controllers\Subscription\TrialController;     
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -19,7 +19,7 @@ Route::post('/check-email', [AuthController::class, 'checkEmail']);
 Route::post('/verify-otp',  [AuthController::class, 'verifyOtp']);
 
 // PayMongo webhook — no auth (PayMongo calls this directly)
-Route::post('/webhook/paymongo', [PayMongoController::class, 'webhook']); // ✅ ADD (for later)
+Route::post('/webhook/paymongo', [PayMongoController::class, 'webhook']); 
 
 // Protected routes (logged in only)
 Route::middleware('auth:sanctum')->group(function () {
@@ -31,12 +31,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Subscription info — for React to get trial status & days left
-    Route::get('/subscription/status', [TrialController::class, 'status']); // ✅ ADD (for later)
-    Route::post('/subscription/pay',   [PayMongoController::class, 'createPayment']); // ✅ ADD (for later)
+    Route::get('/subscription/status', [TrialController::class, 'status']);
+    Route::post('/subscription/pay',   [PayMongoController::class, 'createPayment']); 
 });
 
 // Host-only routes — must be logged in AND have active trial or paid plan
-Route::middleware(['auth:sanctum', 'check.subscription'])->group(function () { // ✅ CHANGED
+Route::middleware(['auth:sanctum', 'check.subscription'])->group(function () { 
     Route::post('/listings',          [ListingController::class, 'store']);
     Route::put('/listings/{id}',      [ListingController::class, 'update']);
     Route::delete('/listings/{id}',   [ListingController::class, 'destroy']);

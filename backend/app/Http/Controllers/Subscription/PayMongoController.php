@@ -41,6 +41,7 @@ class PayMongoController extends Controller
                         'amount'      => $selected['amount'],
                         'description' => "Homeseek {$selected['name']} - {$user->email}",
                         'remarks'     => "user_id:{$user->id}|plan:{$request->plan}",
+                        'payment_method_types' => ['gcash'], 
                     ]
                 ]
             ]);
