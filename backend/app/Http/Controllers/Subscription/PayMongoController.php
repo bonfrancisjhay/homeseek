@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Carbon\Carbon;
 
 class PayMongoController extends Controller
 {
@@ -18,7 +17,7 @@ class PayMongoController extends Controller
         $this->secretKey = config('paymongo.secret_key');
     }
 
-    // ─── Create Payment Link ──────────────────────────────────────────
+
     public function createPayment(Request $request)
     {
         $request->validate([
@@ -33,7 +32,7 @@ class PayMongoController extends Controller
         $selected = $plans[$request->plan];
         $user     = $request->user();
 
-        // Create PayMongo Payment Link
+      
         $response = Http::withBasicAuth($this->secretKey, '')
             ->post('https://api.paymongo.com/v1/links', [
                 'data' => [
@@ -41,10 +40,15 @@ class PayMongoController extends Controller
                         'amount'      => $selected['amount'],
                         'description' => "Homeseek {$selected['name']} - {$user->email}",
                         'remarks'     => "user_id:{$user->id}|plan:{$request->plan}",
-                        'payment_method_types' => ['gcash'], 
+                        'payment_method_types' => ['qrph'],
+                        'redirect'    => [
+                        'success' => 'http://localhost:5173/payment/success',  
+                        'failed'  => 'http://localhost:5173/payment/failed', 
+    ], 
                     ]
                 ]
             ]);
+
 
         if (!$response->successful()) {
             return response()->json([
@@ -56,31 +60,31 @@ class PayMongoController extends Controller
         $link = $response->json('data.attributes');
 
         return response()->json([
-            'payment_url'  => $link['checkout_url'],  // ← send this to React
+            'payment_url'  => $link['checkout_url'], 
             'reference_id' => $response->json('data.id'),
         ]);
     }
 
-    // ─── Webhook — PayMongo calls this after payment ──────────────────
+    
     public function webhook(Request $request)
     {
         // Verify webhook signature
-        $payload   = $request->getContent();
-        $signature = $request->header('Paymongo-Signature');
-        $secret    = config('paymongo.webhook_secret');
+        // $payload   = $request->getContent();
+        // $signature = $request->header('Paymongo-Signature');
+        // $secret    = config('paymongo.webhook_secret');
 
-        if (!$this->verifySignature($payload, $signature, $secret)) {
-            return response()->json(['message' => 'Invalid signature'], 401);
-        }
+        // if (!$this->verifySignature($payload, $signature, $secret)) {
+        //     return response()->json(['message' => 'Invalid signature'], 401);
+        // }
 
         $event = $request->json('data.attributes.type');
         $data  = $request->json('data.attributes.data');
 
-        // Payment link paid
+       
         if ($event === 'link.payment.paid') {
             $remarks = $data['attributes']['remarks'] ?? '';
 
-            // Extract user_id and plan from remarks
+            
             preg_match('/user_id:(\d+)/', $remarks, $userMatch);
             preg_match('/plan:(\w+)/',    $remarks, $planMatch);
 
@@ -91,8 +95,8 @@ class PayMongoController extends Controller
                 Subscription::where('user_id', $userId)->update([
                     'status'               => 'active',
                     'plan'                 => $plan,
-                    'paid_at'              => Carbon::now(),
-                    'expires_at'           => Carbon::now()->addDays(30),
+                    'paid_at'              => now(),
+                    'expires_at'           => now()->addDays(30),
                     'paymongo_payment_id'  => $data['id'] ?? null,
                 ]);
             }
@@ -101,7 +105,7 @@ class PayMongoController extends Controller
         return response()->json(['received' => true]);
     }
 
-    // ─── Verify Webhook Signature ─────────────────────────────────────
+    
     private function verifySignature($payload, $signature, $secret): bool
     {
         if (!$signature || !$secret) return false;

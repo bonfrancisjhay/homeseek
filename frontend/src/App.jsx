@@ -8,14 +8,16 @@ import CreateListing from './pages/CreateListing';
 import ListingDetail from './pages/ListingDetail';
 import HostDashboard from './pages/host/HostDashboard';
 import TrialBanner from './components/TrialBanner';
-import SubscriptionModal from './components/SubscriptionModal'; // ✅ ADD
+import SubscriptionModal from './components/SubscriptionModal'; 
+import PaymentSuccess from "./pages/PaymentSuccess"; 
+import PaymentFailed  from "./pages/PaymentFailed";  
 import axios from 'axios';
 
 function App() {
   const [searchFilter, setSearchFilter]       = useState('');
-  const [showSubModal, setShowSubModal]       = useState(false); // ✅ ADD
+  const [showSubModal, setShowSubModal]       = useState(false); 
 
-  // ✅ ADD — check subscription on app load
+ 
   useEffect(() => {
     const checkSub = async () => {
       const token = localStorage.getItem('token');
@@ -58,6 +60,8 @@ function App() {
         <Route path="/createlisting"  element={<CreateListing />} />
         <Route path="/listings/:id"   element={<ListingDetail />} />
         <Route path="/host/dashboard" element={<HostDashboard />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} /> 
+        <Route path="/payment/failed"  element={<PaymentFailed />} />  
       </Routes>
     </BrowserRouter>
   );
