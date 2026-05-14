@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Auth from './pages/Auth';
@@ -16,7 +17,8 @@ import axios from 'axios';
 function App() {
   const [searchFilter, setSearchFilter]       = useState('');
   const [showSubModal, setShowSubModal]       = useState(false); 
-
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user'));
  
   useEffect(() => {
     const checkSub = async () => {
@@ -54,12 +56,27 @@ function App() {
       {showSubModal && <SubscriptionModal />}
 
       <Routes>
-        <Route path="/"               element={<Listings searchFilter={searchFilter} />} />
-        <Route path="/login"          element={<Login />} />
+        <Route
+          path="/"
+          element={
+            token && user?.role === 'host'
+              ? <Navigate to="/host/dashboard" />
+              : <Listings searchFilter={searchFilter} />
+          }
+        />
+        {/* <Route path="/login"          element={<Login />} /> */}
         <Route path="/register"       element={<Auth />} />
         <Route path="/createlisting"  element={<CreateListing />} />
         <Route path="/listings/:id"   element={<ListingDetail />} />
-        <Route path="/host/dashboard" element={<HostDashboard />} />
+        <Route
+          path="/host/dashboard"
+          element={
+            localStorage.getItem('token') &&
+            JSON.parse(localStorage.getItem('user'))?.role === 'host'
+              ? <HostDashboard />
+              : <Navigate to="/login" />
+          }
+        />
         <Route path="/payment/success" element={<PaymentSuccess />} /> 
         <Route path="/payment/failed"  element={<PaymentFailed />} />  
       </Routes>

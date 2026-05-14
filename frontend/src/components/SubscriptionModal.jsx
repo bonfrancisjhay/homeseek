@@ -52,6 +52,8 @@ export default function SubscriptionModal({ onLogout }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      localStorage.setItem("pending_plan", selected);
+
       window.location.href = res.data.payment_url;
 
     } catch (err) {

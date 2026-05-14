@@ -25,8 +25,8 @@ class PayMongoController extends Controller
         ]);
 
         $plans = [
-            'basic' => ['amount' => 29900, 'name' => 'Basic Plan'],  // ₱299
-            'pro'   => ['amount' => 59900, 'name' => 'Pro Plan'],     // ₱599
+            'basic' => ['amount' => 29900, 'name' => 'Basic Plan'],  
+            'pro'   => ['amount' => 59900, 'name' => 'Pro Plan'],     
         ];
 
         $selected = $plans[$request->plan];
@@ -40,7 +40,6 @@ class PayMongoController extends Controller
                         'amount'      => $selected['amount'],
                         'description' => "Homeseek {$selected['name']} - {$user->email}",
                         'remarks'     => "user_id:{$user->id}|plan:{$request->plan}",
-                        'payment_method_types' => ['qrph'],
                         'redirect'    => [
                         'success' => 'http://localhost:5173/payment/success',  
                         'failed'  => 'http://localhost:5173/payment/failed', 
