@@ -34,7 +34,6 @@ function App() {
 
         const sub = res.data.subscription;
 
-        // Show modal if expired
         if (sub?.status === 'expired') {
           setShowSubModal(true);
         }
@@ -51,10 +50,7 @@ function App() {
     <BrowserRouter>
       <Navbar onSearch={(params) => setSearchFilter(params.location)} />
       <TrialBanner />
-
-      {/* ✅ ADD — force subscribe modal */}
       {showSubModal && <SubscriptionModal />}
-
       <Routes>
         <Route
           path="/"
@@ -64,7 +60,6 @@ function App() {
               : <Listings searchFilter={searchFilter} />
           }
         />
-        {/* <Route path="/login"          element={<Login />} /> */}
         <Route path="/register"       element={<Auth />} />
         <Route path="/createlisting"  element={<CreateListing />} />
         <Route path="/listings/:id"   element={<ListingDetail />} />
