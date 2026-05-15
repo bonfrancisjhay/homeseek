@@ -23,14 +23,52 @@ const EMPTY_FORM = {
 
 function ListingsPage({ listings, loading, onDelete, onRefresh }) {
     const navigate = useNavigate();
+    const [editingId, setEditingId] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedDeleteId, setSelectedDeleteId] = useState(null);
     const [hoverRow, setHoverRow]     = useState(null);
     const [showPanel, setShowPanel]   = useState(false);
     const [form, setForm]             = useState(EMPTY_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError]           = useState('');
 
-    const openPanel  = () => { setForm(EMPTY_FORM); setError(''); setShowPanel(true); };
+    const openPanel = (listing = null) => {
+    setError('');
+
+    if (listing) {
+        setEditingId(listing.id);
+
+        setForm({
+            title: listing.title || '',
+            description: listing.description || '',
+            location: listing.location || '',
+            price_per_night: listing.price_per_night || '',
+            max_guests: listing.max_guests || '',
+            amenities: listing.amenities || [],
+        });
+    } else {
+        setEditingId(null);
+        setForm(EMPTY_FORM);
+    }
+
+    setShowPanel(true);
+    };
+
     const closePanel = () => setShowPanel(false);
+
+    const openDeleteModal = (id) => {
+    setSelectedDeleteId(id);
+    setShowDeleteModal(true);
+};
+
+    const confirmDelete = async () => {
+    if (selectedDeleteId) {
+        await onDelete(selectedDeleteId);
+    }
+
+    setShowDeleteModal(false);
+    setSelectedDeleteId(null);
+};
 
     const toggleAmenity = (a) => {
         setForm(f => ({
@@ -47,26 +85,37 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
     };
 
     const handleSubmit = async () => {
-        if (!form.title || !form.location || !form.price_per_night) {
-            setError('Title, location, and price are required.');
-            return;
+    if (!form.title || !form.location || !form.price_per_night) {
+        setError('Title, location, and price are required.');
+        return;
+    }
+
+    setSubmitting(true);
+    setError('');
+
+    try {
+        const payload = {
+            ...form,
+            price_per_night: Number(form.price_per_night),
+            max_guests: Number(form.max_guests),
+        };
+
+        if (editingId) {
+            await api.put(`/listings/${editingId}`, payload);
+        } else {
+            await api.post('/listings', payload);
         }
-        setSubmitting(true);
-        setError('');
-        try {
-            await api.post('/listings', {
-                ...form,
-                price_per_night: Number(form.price_per_night),
-                max_guests: Number(form.max_guests),
-            });
-            closePanel();
-            if (onRefresh) onRefresh();
-        } catch (err) {
-            setError('Something went wrong. Please try again.');
-        } finally {
-            setSubmitting(false);
-        }
-    };
+
+        closePanel();
+
+        if (onRefresh) onRefresh();
+
+    } catch (err) {
+        setError('Something went wrong. Please try again.');
+    } finally {
+        setSubmitting(false);
+    }
+};
 
     // ✅ Download Excel
     const handleExcel = () => {
@@ -190,8 +239,10 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
                 <div className={`slide-panel ${showPanel ? 'open' : ''}`}>
                     <div className="panel-header">
                         <div>
-                            <p className="panel-title">Add New Listing</p>
-                            <p className="panel-sub">Fill in your property details below</p>
+                        <p className="panel-title">
+                            {editingId ? 'Edit Listing' : 'Add New Listing'}
+                        </p>                            
+                        <p className="panel-sub">Fill in your property details below</p>
                         </div>
                         <button className="panel-close" onClick={closePanel}>✕</button>
                     </div>
@@ -338,14 +389,55 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
                                 <span style={{ flex: 1, color: '#2196f3', fontWeight: '700' }}>₱{Number(listing.price_per_night).toLocaleString()}</span>
                                 <span style={{ flex: 1, color: '#888' }}>👥 {listing.max_guests}</span>
                                 <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
-                                    <button className="btn-edit" onClick={() => navigate(`/host/listings/${listing.id}/edit`)}>Edit</button>
-                                    <button className="btn-delete" onClick={() => onDelete(listing.id)}>Delete</button>
+                                    <button
+                                        className="btn-edit"
+                                        onClick={() => openPanel(listing)}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        className="btn-delete"
+                                        onClick={() => openDeleteModal(listing.id)}
+                                    >
+                                        Delete
+                                    </button>
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+            {showDeleteModal && (
+    <>
+        <div className="delete-overlay" />
+
+        <div className="delete-modal">
+            <div className="delete-icon">🗑️</div>
+
+            <h3>Delete Listing?</h3>
+
+            <p>
+                This action cannot be undone.
+            </p>
+
+            <div className="delete-actions">
+                <button
+                    className="delete-cancel"
+                    onClick={() => setShowDeleteModal(false)}
+                >
+                    Cancel
+                </button>
+
+                <button
+                    className="delete-confirm"
+                    onClick={confirmDelete}
+                >
+                    Delete
+                </button>
+            </div>
+        </div>
+    </>
+)}
         </>
     );
 }
