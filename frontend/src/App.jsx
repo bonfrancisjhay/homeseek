@@ -47,6 +47,7 @@ function App() {
   }, []);
 
   return (
+    
     <BrowserRouter>
       <Navbar onSearch={(params) => setSearchFilter(params.location)} />
       <TrialBanner />
