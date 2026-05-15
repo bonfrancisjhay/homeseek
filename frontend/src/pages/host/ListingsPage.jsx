@@ -151,7 +151,7 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
         i + 1,
         l.title,
         l.location,
-        `₱${Number(l.price_per_night).toLocaleString()}`,
+        `Php ${Number(l.price_per_night).toLocaleString()}`,
         l.max_guests,
     ]);
 
@@ -205,7 +205,7 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
                                 <td>${i + 1}</td>
                                 <td>${l.title}</td>
                                 <td>${l.location}</td>
-                                <td>P${Number(l.price_per_night).toLocaleString()}</td>
+                                <td>Php ${Number(l.price_per_night).toLocaleString()}</td>
                                 <td>${l.max_guests}</td>
                             </tr>
                         `).join('')}

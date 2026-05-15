@@ -22,136 +22,210 @@ function DashboardPage({ listings, loading, onDelete, onViewAll, user }) {
     const maxValue = Math.max(...MONTHLY_DATA.map(d => d.value), 1);
 
     return (
+        <div className="dash-wrap">
+
+    {/* HERO (OUTSIDE GRID) */}
+    <div className="hero-card">
         <div>
+            <p className="hero-label">DASHBOARD OVERVIEW</p>
 
-            <div className="dash-wrap">
+            <h1 className="hero-title">
+                Welcome back, {user?.name} 👋
+            </h1>
 
-                {/* Header */}
-                <div className="dash-header">
-                    <div>
-                        <h1 className="dash-title">Dashboard</h1>
-                        <p className="dash-sub">Welcome back, {user?.name} 👋</p>
+            <p className="hero-sub">
+                Manage your listings, monitor analytics,
+                and track your property performance.
+            </p>
+        </div>
+    </div>
+
+    {/* TOP GRID: LEFT STATS + RIGHT CHART */}
+    <div className="dash-grid">
+
+        {/* LEFT: STATS */}
+        <div className="dash-left">
+            <div className="modern-stats-grid">
+                <div className="modern-stat-card">
+
+                    <div className="modern-stat-top">
+                        <div className="modern-stat-icon blue">
+                            🏠
+                        </div>
+
+                        <span className="modern-growth positive">
+                            ↑ 12%
+                        </span>
                     </div>
+
+                    <h2 className="modern-stat-number">
+                        {listings.length}
+                    </h2>
+
+                    <p className="modern-stat-label">
+                        Total Listings
+                    </p>
+
+                    <div className="modern-stat-bottom">
+                        Active rental properties
+                    </div>
+
                 </div>
 
-                {/* Stats */}
-                <div className="stats-row">
-                    <div className="stat-card">
-                        <div className="stat-icon-row">
-                            <div className="stat-icon-wrap red">🏠</div>
-                            <span className="stat-badge">Total</span>
+                <div className="modern-stat-card">
+
+                    <div className="modern-stat-top">
+                        <div className="modern-stat-icon green">
+                            📅
                         </div>
-                        <span className="stat-num">{listings.length}</span>
-                        <span className="stat-label">Listings</span>
+
+                        <span className="modern-growth positive">
+                            ↑ 4%
+                        </span>
                     </div>
-                    <div className="stat-card">
-                        <div className="stat-icon-row">
-                            <div className="stat-icon-wrap blue">📅</div>
-                            <span className="stat-badge">Active</span>
-                        </div>
-                        <span className="stat-num">0</span>
-                        <span className="stat-label">Bookings</span>
+
+                    <h2 className="modern-stat-number">
+                        0
+                    </h2>
+
+                    <p className="modern-stat-label">
+                        Active Bookings
+                    </p>
+
+                    <div className="modern-stat-bottom">
+                        Current reservations
                     </div>
-                    <div className="stat-card">
-                        <div className="stat-icon-row">
-                            <div className="stat-icon-wrap green">💰</div>
-                            <span className="stat-badge">Month</span>
-                        </div>
-                        <span className="stat-num">₱0</span>
-                        <span className="stat-label">Earnings</span>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-icon-row">
-                            <div className="stat-icon-wrap amber">⭐</div>
-                            <span className="stat-badge">Avg</span>
-                        </div>
-                        <span className="stat-num">—</span>
-                        <span className="stat-label">Rating</span>
-                    </div>
+
                 </div>
 
-                {/* Bar Chart */}
-                <div className="chart-card">
-                    <div className="chart-header">
-                        <div>
-                            <p className="chart-title">Monthly Earnings</p>
-                            <p className="chart-sub">Jan – Dec {new Date().getFullYear()}</p>
+                <div className="modern-stat-card">
+
+                    <div className="modern-stat-top">
+                        <div className="modern-stat-icon yellow">
+                            💰
                         </div>
-                        <div className="chart-total">
-                            <div className="chart-total-num">₱0</div>
-                            <div className="chart-total-label">Total this year</div>
-                        </div>
+
+                        <span className="modern-growth positive">
+                            ↑ 18%
+                        </span>
                     </div>
 
-                    <div className="bar-chart">
-                        {MONTHLY_DATA.map((d, i) => {
-                            const currentMonth = new Date().getMonth();
-                            const heightPct = (d.value / maxValue) * 132;
-                            return (
-                                <div
-                                    key={d.month}
-                                    className={`bar-col ${i === currentMonth ? 'current-month' : ''}`}
-                                >
-                                    <div
-                                        className={`bar-fill ${d.value > 0 ? 'has-value' : ''}`}
-                                        style={{ height: `${Math.max(heightPct, 4)}px` }}
-                                    />
-                                    <span className="bar-month">{d.month}</span>
-                                </div>
-                            );
-                        })}
+                    <h2 className="modern-stat-number">
+                        PHP 0
+                    </h2>
+
+                    <p className="modern-stat-label">
+                        Monthly Earnings
+                    </p>
+
+                    <div className="modern-stat-bottom">
+                        Earnings this month
                     </div>
+
                 </div>
 
-                {/* Recent Listings */}
-                <div className="section-hdr">
-                    <h2 className="section-title">Your listings</h2>
-                    <button className="see-all-btn" onClick={onViewAll}>See all →</button>
-                </div>
+                <div className="modern-stat-card">
 
-                {loading ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px' }}>
-                        {[1,2,3].map(i => <div key={i} className="skeleton" />)}
+                    <div className="modern-stat-top">
+                        <div className="modern-stat-icon orange">
+                            ⭐
+                        </div>
+
+                        <span className="modern-growth neutral">
+                            New
+                        </span>
                     </div>
-                ) : listings.length === 0 ? (
-                    <div className="empty-box">
-                        <p style={{ fontSize: '36px', margin: '0 0 10px' }}>🏠</p>
-                        <p style={{ fontSize: '16px', fontWeight: '700', color: '#222', margin: '0 0 6px' }}>No listings yet</p>
-                        <p style={{ fontSize: '13px', color: '#aaa', margin: '0 0 20px' }}>Start earning by adding your first property.</p>
-                        <button className="dash-add-btn" onClick={() => navigate('/create-listing')}>
-                            + Add your first listing
-                        </button>
+
+                    <h2 className="modern-stat-number">
+                        —
+                    </h2>
+
+                    <p className="modern-stat-label">
+                        Average Rating
+                    </p>
+
+                    <div className="modern-stat-bottom">
+                        Guest satisfaction
                     </div>
-                ) : (
-                    <div className="card-grid">
-                        {listings.slice(0, 3).map(listing => (
-                            <div key={listing.id} className="listing-card">
-                                <div className="listing-img">
-                                    {listing.images?.[0]
-                                        ? <img src={listing.images[0]} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                        : <span style={{ fontSize: '30px' }}>🏠</span>
-                                    }
-                                </div>
-                                <div className="listing-body">
-                                    <p className="listing-title">{listing.title}</p>
-                                    <p className="listing-loc">📍 {listing.location}</p>
-                                    <div className="listing-footer">
-                                        <span className="listing-price">
-                                            ₱{Number(listing.price_per_night).toLocaleString()}
-                                            <span>/night</span>
-                                        </span>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                            <button className="btn-edit" onClick={() => navigate(`/host/listings/${listing.id}/edit`)}>Edit</button>
-                                            <button className="btn-delete" onClick={() => onDelete(listing.id)}>Delete</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                </div>
             </div>
         </div>
+
+        {/* RIGHT: CHART */}
+        <div className="dash-right">
+
+            <div className="chart-card-modern">
+                <div className="chart-header-modern">
+                    <div>
+                        <p className="chart-title-modern">Monthly Earnings</p>
+                        <p className="chart-sub-modern">
+                            Jan – Dec {new Date().getFullYear()}
+                        </p>
+                    </div>
+
+                    <div className="chart-total-modern">
+                        <div className="chart-total-num-modern">PHP 0</div>
+                        <div className="chart-total-label-modern">Total this year</div>
+                    </div>
+                </div>
+
+                <div className="bar-chart-modern">
+                    {MONTHLY_DATA.map((d, i) => {
+                        const currentMonth = new Date().getMonth();
+                        const maxValue = Math.max(...MONTHLY_DATA.map(d => d.value), 1);
+                        const heightPct = (d.value / maxValue) * 160;
+
+                        return (
+                            <div
+                                key={d.month}
+                                className={`bar-col-modern ${i === currentMonth ? 'active-month' : ''}`}
+                            >
+                                <div
+                                    className={`bar-fill-modern ${d.value > 0 ? 'has-value' : ''}`}
+                                    style={{ height: `${Math.max(heightPct, 6)}px` }}
+                                />
+                                <span className="bar-month-modern">{d.month}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {/* BOTTOM: INSIGHTS (FULL WIDTH) */}
+    <div className="dash-bottom">
+
+        <h3 className="analytics-title">Insights</h3>
+
+        <div className="insight-row">
+
+            <div className="insight-card">
+                <p className="insight-label">Occupancy Rate</p>
+                <h2 className="insight-value">82%</h2>
+                <span className="insight-tag positive">↑ +5%</span>
+            </div>
+
+            <div className="insight-card">
+                <p className="insight-label">Avg Stay</p>
+                <h2 className="insight-value">3.4 days</h2>
+                <span className="insight-tag neutral">Stable</span>
+            </div>
+
+            <div className="insight-card">
+                <p className="insight-label">New Guests</p>
+                <h2 className="insight-value">12</h2>
+                <span className="insight-tag positive">↑ +3</span>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
     );
 }
 
