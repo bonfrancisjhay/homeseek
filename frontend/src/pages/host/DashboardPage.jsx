@@ -95,13 +95,6 @@ function DashboardPage({ listings = [], user }) {
             Here's how your properties are performing this month
           </p>
         </div>
-        <div
-          className="hidden sm:flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full"
-          style={{ background: BLUE_LIGHT, border: `1px solid ${BLUE_BORDER}`, color: BLUE_DARK }}
-        >
-          <span className="w-2 h-2 rounded-full inline-block" style={{ background: BLUE }} />
-          Host Active
-        </div>
       </div>
 
       {/* STAT CARDS */}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Listing;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ListingController extends Controller
 {
@@ -36,8 +37,20 @@ class ListingController extends Controller
             'description'     => 'required|string',
             'location'        => 'required|string',
             'price_per_night' => 'required|numeric',
-            'max_guests'      => 'required|integer'
+            'max_guests'      => 'required|integer',
+            'images.*'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'latitude'        => 'nullable|numeric',
+            'longitude'       => 'nullable|numeric',
         ]);
+
+        // Handle multiple image uploads
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $path = $file->store('listings', 'public');
+                $imagePaths[] = '/storage/' . $path;
+            }
+        }
 
         $listing = Listing::create([
             'user_id'         => $request->user()->id,
@@ -46,7 +59,11 @@ class ListingController extends Controller
             'location'        => $request->location,
             'price_per_night' => $request->price_per_night,
             'max_guests'      => $request->max_guests,
-            'photo'           => $request->photo
+            'photo'           => $request->photo ?? null,
+            'images'          => $imagePaths,
+            'amenities'       => json_decode($request->amenities ?? '[]', true),
+            'latitude'        => $request->latitude  ? (float) $request->latitude  : null,
+            'longitude'       => $request->longitude ? (float) $request->longitude : null,
         ]);
 
         return response()->json($listing, 201);
@@ -61,7 +78,44 @@ class ListingController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $listing->update($request->all());
+        $request->validate([
+            'images.*'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'latitude'  => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+        ]);
+
+        // Keep existing images the host didn't remove
+        $keepImages = json_decode($request->keepImages ?? '[]', true);
+
+        // Upload any new images
+        $newImages = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $path = $file->store('listings', 'public');
+                $newImages[] = '/storage/' . $path;
+            }
+        }
+
+        // Delete removed images from storage
+        $removedImages = array_diff($listing->images ?? [], $keepImages);
+        foreach ($removedImages as $removedPath) {
+            // Convert /storage/listings/file.jpg → listings/file.jpg
+            $storagePath = str_replace('/storage/', '', $removedPath);
+            Storage::disk('public')->delete($storagePath);
+        }
+
+        $listing->update([
+            'title'           => $request->title           ?? $listing->title,
+            'description'     => $request->description     ?? $listing->description,
+            'location'        => $request->location        ?? $listing->location,
+            'price_per_night' => $request->price_per_night ?? $listing->price_per_night,
+            'max_guests'      => $request->max_guests      ?? $listing->max_guests,
+            'amenities'       => json_decode($request->amenities ?? '[]', true),
+            'images'          => array_merge($keepImages, $newImages),
+            'latitude'        => $request->latitude  ? (float) $request->latitude  : $listing->latitude,
+            'longitude'       => $request->longitude ? (float) $request->longitude : $listing->longitude,
+        ]);
+
         return response()->json($listing);
     }
 
@@ -72,6 +126,12 @@ class ListingController extends Controller
 
         if ($listing->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Delete all associated images from storage
+        foreach ($listing->images ?? [] as $imagePath) {
+            $storagePath = str_replace('/storage/', '', $imagePath);
+            Storage::disk('public')->delete($storagePath);
         }
 
         $listing->delete();

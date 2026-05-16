@@ -5,10 +5,12 @@ import {
   MapPin, Users, Pencil, Trash2, X, TriangleAlert,
   Home, CheckSquare, Square,
 } from 'lucide-react';
-import api from '../../services/api';
+import api, { createListing, updateListing } from '../../services/api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ImageUploader from '../../components/ImageUploader';
+import MapPicker from '../../components/MapPicker';
 
 const BLUE        = '#3b82f6';
 const BLUE_LIGHT  = '#eff6ff';
@@ -20,8 +22,12 @@ const AMENITIES = [
 ];
 
 const EMPTY_FORM = {
-  title: '', description: '', location: '',
-  price_per_night: '', max_guests: '', amenities: [],
+    title: '', description: '', location: '',
+    price_per_night: '', max_guests: '', amenities: [],
+    images: [],       // new File objects
+    keepImages: [],   // existing URLs to keep
+    latitude: null,
+    longitude: null,
 };
 
 /* ─── tiny reusable input styles ─── */
@@ -69,6 +75,10 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
         price_per_night: listing.price_per_night || '',
         max_guests:      listing.max_guests || '',
         amenities:       listing.amenities || [],
+        images:          [],
+        keepImages:      listing.images || [],   // ← existing photos
+        latitude:        listing.latitude  || null,
+        longitude:       listing.longitude || null,
       });
     } else {
       setEditingId(null);
@@ -100,22 +110,36 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
 
   const handleSubmit = async () => {
     if (!form.title || !form.location || !form.price_per_night) {
-      setError('Title, location, and price are required.');
-      return;
+        setError('Title, location, and price are required.');
+        return;
     }
     setSubmitting(true); setError('');
     try {
-      const payload = { ...form, price_per_night: Number(form.price_per_night), max_guests: Number(form.max_guests) };
-      if (editingId) await api.put(`/listings/${editingId}`, payload);
-      else           await api.post('/listings', payload);
-      closePanel();
-      if (onRefresh) onRefresh();
+        const fd = new FormData();
+        fd.append('title',           form.title);
+        fd.append('description',     form.description);
+        fd.append('location',        form.location);
+        fd.append('price_per_night', form.price_per_night);
+        fd.append('max_guests',      form.max_guests);
+        fd.append('amenities',       JSON.stringify(form.amenities));
+        fd.append('keepImages',      JSON.stringify(form.keepImages));
+        if (form.latitude)  fd.append('latitude',  form.latitude);
+        if (form.longitude) fd.append('longitude', form.longitude);
+        if (editingId)      fd.append('_method',   'PUT'); // Laravel method spoofing
+
+        form.images.forEach(file => fd.append('images[]', file)); // note images[]
+
+        if (editingId) await updateListing(editingId, fd);
+        else           await createListing(fd);
+
+        closePanel();
+        if (onRefresh) onRefresh();
     } catch {
-      setError('Something went wrong. Please try again.');
+        setError('Something went wrong. Please try again.');
     } finally {
-      setSubmitting(false);
+        setSubmitting(false);
     }
-  };
+};
 
   const handleExcel = () => {
     const data = listings.map((l, i) => ({
@@ -137,7 +161,7 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
     autoTable(doc, {
       startY: 40,
       head: [['#', 'Title', 'Location', 'Price/Night', 'Max Guests']],
-      body: listings.map((l, i) => [i + 1, l.title, l.location, `₱${Number(l.price_per_night).toLocaleString()}`, l.max_guests]),
+      body: listings.map((l, i) => [i + 1, l.title, l.location, `Php${Number(l.price_per_night).toLocaleString()}`, l.max_guests]),
       styles: { fontSize: 10 },
       headStyles: { fillColor: [59, 130, 246] },
     });
@@ -215,6 +239,25 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
                 <input style={inputCls} name="max_guests" type="number" value={form.max_guests} onChange={handleChange} placeholder="e.g. 4" />
               </div>
             </div>
+            {/* Photos */}
+            <Field label="Property Photos">
+                <ImageUploader
+                    existingImages={form.keepImages}
+                    onFilesChange={(files) => setForm(f => ({ ...f, images: files }))}
+                    onRemoveExisting={(url) =>
+                        setForm(f => ({ ...f, keepImages: f.keepImages.filter(i => i !== url) }))
+                    }
+                />
+            </Field>
+
+            {/* Map */}
+            <Field label="Pin your location">
+                <MapPicker
+                    lat={form.latitude}
+                    lng={form.longitude}
+                    onChange={(lat, lng) => setForm(f => ({ ...f, latitude: lat, longitude: lng }))}
+                />
+            </Field>
             <Field label="Amenities">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {AMENITIES.map(a => {

@@ -38,7 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // Host-only routes — must be logged in AND have active trial or paid plan
 Route::middleware(['auth:sanctum', 'check.subscription'])->group(function () { 
     Route::post('/listings',          [ListingController::class, 'store']);
-    Route::put('/listings/{id}',      [ListingController::class, 'update']);
+    Route::post('/listings/{id}',      [ListingController::class, 'update']);
     Route::delete('/listings/{id}',   [ListingController::class, 'destroy']);
     Route::get('/host/listings',      [ListingController::class, 'hostListings']);
 });
