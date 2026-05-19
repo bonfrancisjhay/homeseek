@@ -185,6 +185,7 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
     setTimeout(() => { win.print(); win.close(); }, 500);
   };
 
+
   return (
     <>
       <div style={{ padding: '24px', fontFamily: 'DM Sans, sans-serif', minHeight: '100vh', background: '#f9fafb' }}>
@@ -242,12 +243,13 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
             {/* Photos */}
             <Field label="Property Photos">
                 <ImageUploader
-                    existingImages={form.keepImages}
-                    onFilesChange={(files) => setForm(f => ({ ...f, images: files }))}
-                    onRemoveExisting={(url) =>
-                        setForm(f => ({ ...f, keepImages: f.keepImages.filter(i => i !== url) }))
-                    }
-                />
+                  key={editingId ?? 'new'}
+                  existingImages={form.keepImages}
+                  onFilesChange={(files) => setForm(f => ({ ...f, images: files }))}
+                  onRemoveExisting={(url) =>
+                      setForm(f => ({ ...f, keepImages: f.keepImages.filter(i => i !== url) }))
+                  }
+              />
             </Field>
 
             {/* Map */}
@@ -377,7 +379,9 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
               ))}
             </div>
             {/* Table rows */}
-            {listings.map((listing, i) => (
+            {listings.map((listing, i) => {
+              console.log(listing);
+              return(
               <div
                 key={listing.id}
                 onMouseEnter={() => setHoverRow(i)}
@@ -414,7 +418,8 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

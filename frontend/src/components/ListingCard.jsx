@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; 
 
 function ListingCard({ listing, onClick, index }) {
+    console.log('images field:', listing.images, typeof listing.images);
     const [liked, setLiked] = useState(false);
     const [imgError, setImgError] = useState(false);
+
+    useEffect(() => {
+        setImgError(false);
+    }, [listing.id]); 
 
     // Placeholder images for listings without photos
     const placeholders = [
@@ -14,9 +19,25 @@ function ListingCard({ listing, onClick, index }) {
         'https://images.unsplash.com/photo-1416331108676-a22ccb276e35?w=500',
     ];
 
-    const imgSrc = listing.photo && !imgError
-        ? listing.photo
-        : placeholders[index % placeholders.length];
+    const BASE_URL = (import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000').replace(/\/$/, '');
+
+
+    const firstImage = listing.images?.[0];
+
+    const getImageSrc = () => {
+        if (imgError || !firstImage) {
+            return placeholders[index % placeholders.length];
+        }
+
+        if (firstImage.startsWith('http')) {
+            return firstImage;
+        }
+
+        return `${BASE_URL}${firstImage}`;
+    };
+
+    const imgSrc = getImageSrc();
+    console.log('imgSrc:', imgSrc, 'imgError:', imgError);
 
     return (
         <div style={styles.card} onClick={onClick}>
@@ -26,7 +47,11 @@ function ListingCard({ listing, onClick, index }) {
                     src={imgSrc}
                     alt={listing.title}
                     style={styles.img}
-                    onError={() => setImgError(true)}
+                    onError={(e) => {
+                    if (!imgError) {
+                        setImgError(true);
+                    }
+                }}
                 />
                 {/* Like button */}
                 <button

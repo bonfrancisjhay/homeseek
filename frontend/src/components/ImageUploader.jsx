@@ -3,7 +3,8 @@ import { ImagePlus, X } from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-function ImageUploader({ existingImages = [], onFilesChange, onRemoveExisting }) {
+function ImageUploader({ existingImages, onFilesChange, onRemoveExisting }) {
+    const safeImages = Array.isArray(existingImages) ? existingImages : [];
     const inputRef = useRef(null);
     const [previews, setPreviews] = useState([]);
 
@@ -17,9 +18,9 @@ function ImageUploader({ existingImages = [], onFilesChange, onRemoveExisting })
     return (
         <div>
             {/* Existing images (edit mode) */}
-            {existingImages.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                    {existingImages.map((url, i) => (
+                {safeImages.length > 0 && (                
+                    <div className="flex flex-wrap gap-2 mb-3">
+                    {safeImages.map((url, i) => (
                         <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-100">
                             <img src={`${BASE_URL}${url}`} className="w-full h-full object-cover" alt="" />
                             <button
