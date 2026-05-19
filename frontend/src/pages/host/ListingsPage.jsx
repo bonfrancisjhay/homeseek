@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, FileSpreadsheet, FileText, Printer,
   MapPin, Users, Pencil, Trash2, X, TriangleAlert,
-  Home, CheckSquare, Square,
+  Home, CheckSquare, Square, Search, SlidersHorizontal,
 } from 'lucide-react';
 import api, { createListing, updateListing } from '../../services/api';
 import * as XLSX from 'xlsx';
@@ -24,13 +24,12 @@ const AMENITIES = [
 const EMPTY_FORM = {
     title: '', description: '', location: '',
     price_per_night: '', max_guests: '', amenities: [],
-    images: [],       // new File objects
-    keepImages: [],   // existing URLs to keep
+    images: [],
+    keepImages: [],
     latitude: null,
     longitude: null,
 };
 
-/* ─── tiny reusable input styles ─── */
 const inputCls = {
   width: '100%', padding: '10px 12px', borderRadius: '10px',
   border: '1px solid #e5e7eb', fontSize: '13px', outline: 'none',
@@ -55,14 +54,37 @@ function Field({ label, required, children }) {
 
 function ListingsPage({ listings, loading, onDelete, onRefresh }) {
   const navigate      = useNavigate();
-  const [editingId, setEditingId]             = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editingId, setEditingId]               = useState(null);
+  const [showDeleteModal, setShowDeleteModal]   = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState(null);
-  const [hoverRow, setHoverRow]               = useState(null);
-  const [showPanel, setShowPanel]             = useState(false);
-  const [form, setForm]                       = useState(EMPTY_FORM);
-  const [submitting, setSubmitting]           = useState(false);
-  const [error, setError]                     = useState('');
+  const [hoverRow, setHoverRow]                 = useState(null);
+  const [showPanel, setShowPanel]               = useState(false);
+  const [form, setForm]                         = useState(EMPTY_FORM);
+  const [submitting, setSubmitting]             = useState(false);
+  const [error, setError]                       = useState('');
+  const [search, setSearch]                     = useState('');
+  const [sortBy, setSortBy]                     = useState('title');
+  const [sortDir, setSortDir]                   = useState('asc');
+
+  // ── Filtered + sorted listings ──
+  const filtered = listings
+    .filter(l =>
+      l.title?.toLowerCase().includes(search.toLowerCase()) ||
+      l.location?.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      let valA = a[sortBy], valB = b[sortBy];
+      if (sortBy === 'price_per_night') { valA = Number(valA); valB = Number(valB); }
+      if (sortBy === 'max_guests')      { valA = Number(valA); valB = Number(valB); }
+      if (valA < valB) return sortDir === 'asc' ? -1 :  1;
+      if (valA > valB) return sortDir === 'asc' ?  1 : -1;
+      return 0;
+    });
+
+  const toggleSort = (col) => {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('asc'); }
+  };
 
   const openPanel = (listing = null) => {
     setError('');
@@ -76,7 +98,7 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
         max_guests:      listing.max_guests || '',
         amenities:       listing.amenities || [],
         images:          [],
-        keepImages:      listing.images || [],   // ← existing photos
+        keepImages:      listing.images || [],
         latitude:        listing.latitude  || null,
         longitude:       listing.longitude || null,
       });
@@ -87,9 +109,9 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
     setShowPanel(true);
   };
 
-  const closePanel   = () => setShowPanel(false);
+  const closePanel      = () => setShowPanel(false);
   const openDeleteModal = (id) => { setSelectedDeleteId(id); setShowDeleteModal(true); };
-  const confirmDelete = async () => {
+  const confirmDelete   = async () => {
     if (selectedDeleteId) await onDelete(selectedDeleteId);
     setShowDeleteModal(false);
     setSelectedDeleteId(null);
@@ -125,13 +147,10 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
         fd.append('keepImages',      JSON.stringify(form.keepImages));
         if (form.latitude)  fd.append('latitude',  form.latitude);
         if (form.longitude) fd.append('longitude', form.longitude);
-        if (editingId)      fd.append('_method',   'PUT'); // Laravel method spoofing
-
-        form.images.forEach(file => fd.append('images[]', file)); // note images[]
-
+        if (editingId)      fd.append('_method',   'PUT');
+        form.images.forEach(file => fd.append('images[]', file));
         if (editingId) await updateListing(editingId, fd);
         else           await createListing(fd);
-
         closePanel();
         if (onRefresh) onRefresh();
     } catch {
@@ -139,7 +158,7 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
     } finally {
         setSubmitting(false);
     }
-};
+  };
 
   const handleExcel = () => {
     const data = listings.map((l, i) => ({
@@ -185,6 +204,11 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
     setTimeout(() => { win.print(); win.close(); }, 500);
   };
 
+  // Sort indicator
+  const SortIcon = ({ col }) => {
+    if (sortBy !== col) return <span style={{ color: '#d1d5db', fontSize: 10 }}>↕</span>;
+    return <span style={{ color: BLUE, fontSize: 10 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   return (
     <>
@@ -206,7 +230,6 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
           transform: showPanel ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
         }}>
-          {/* Panel header */}
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <p style={{ fontSize: '16px', fontWeight: 600, color: '#111', margin: 0 }}>
@@ -218,8 +241,6 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
               <X size={15} color="#6b7280" />
             </button>
           </div>
-
-          {/* Panel body */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
             <Field label="Property Title" required>
               <input style={inputCls} name="title" value={form.title} onChange={handleChange} placeholder="e.g. Cozy Studio in Makati" />
@@ -240,25 +261,22 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
                 <input style={inputCls} name="max_guests" type="number" value={form.max_guests} onChange={handleChange} placeholder="e.g. 4" />
               </div>
             </div>
-            {/* Photos */}
             <Field label="Property Photos">
-                <ImageUploader
-                  key={editingId ?? 'new'}
-                  existingImages={form.keepImages}
-                  onFilesChange={(files) => setForm(f => ({ ...f, images: files }))}
-                  onRemoveExisting={(url) =>
-                      setForm(f => ({ ...f, keepImages: f.keepImages.filter(i => i !== url) }))
-                  }
+              <ImageUploader
+                key={editingId ?? 'new'}
+                existingImages={form.keepImages}
+                onFilesChange={(files) => setForm(f => ({ ...f, images: files }))}
+                onRemoveExisting={(url) =>
+                  setForm(f => ({ ...f, keepImages: f.keepImages.filter(i => i !== url) }))
+                }
               />
             </Field>
-
-            {/* Map */}
             <Field label="Pin your location">
-                <MapPicker
-                    lat={form.latitude}
-                    lng={form.longitude}
-                    onChange={(lat, lng) => setForm(f => ({ ...f, latitude: lat, longitude: lng }))}
-                />
+              <MapPicker
+                lat={form.latitude}
+                lng={form.longitude}
+                onChange={(lat, lng) => setForm(f => ({ ...f, latitude: lat, longitude: lng }))}
+              />
             </Field>
             <Field label="Amenities">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -277,24 +295,19 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
                         color: selected ? BLUE : '#6b7280',
                       }}
                     >
-                      {selected
-                        ? <CheckSquare size={13} color={BLUE} />
-                        : <Square size={13} color="#d1d5db" />}
+                      {selected ? <CheckSquare size={13} color={BLUE} /> : <Square size={13} color="#d1d5db" />}
                       {a}
                     </button>
                   );
                 })}
               </div>
             </Field>
-
             {error && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#dc2626' }}>
                 <TriangleAlert size={14} /> {error}
               </div>
             )}
           </div>
-
-          {/* Panel footer */}
           <div style={{ padding: '16px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: 10 }}>
             <button onClick={closePanel} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#fff', fontSize: '13px', fontWeight: 500, color: '#6b7280', cursor: 'pointer' }}>
               Cancel
@@ -320,9 +333,9 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {[
-              { label: 'Excel',  icon: <FileSpreadsheet size={14} color="#16a34a" />, action: handleExcel, color: '#16a34a' },
-              { label: 'PDF',    icon: <FileText size={14} color="#dc2626" />,        action: handlePDF,   color: '#dc2626' },
-              { label: 'Print',  icon: <Printer size={14} color={BLUE} />,            action: handlePrint, color: BLUE      },
+              { label: 'Excel', icon: <FileSpreadsheet size={14} color="#16a34a" />, action: handleExcel, color: '#16a34a' },
+              { label: 'PDF',   icon: <FileText size={14} color="#dc2626" />,        action: handlePDF,   color: '#dc2626' },
+              { label: 'Print', icon: <Printer size={14} color={BLUE} />,            action: handlePrint, color: BLUE      },
             ].map(({ label, icon, action, color }) => (
               <button
                 key={label}
@@ -372,54 +385,176 @@ function ListingsPage({ listings, loading, onDelete, onRefresh }) {
           </div>
         ) : (
           <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
-            {/* Table header */}
-            <div style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #f3f4f6', background: '#fafafa' }}>
-              {['Property', 'Location', 'Price / night', 'Max guests', 'Actions'].map((h, i) => (
-                <span key={h} style={{ flex: i === 0 ? 2 : 1, fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</span>
+
+            {/* ── SEARCH & FILTER BAR ── */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {/* Search input */}
+              <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                <Search size={14} color="#9ca3af" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search by title or location..."
+                  style={{
+                    width: '100%', padding: '9px 12px 9px 34px',
+                    borderRadius: 10, border: '1px solid #e5e7eb',
+                    fontSize: 13, color: '#111', background: '#fafafa',
+                    outline: 'none', boxSizing: 'border-box',
+                    transition: 'border 0.15s',
+                  }}
+                  onFocus={e => e.target.style.borderColor = BLUE}
+                  onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  >
+                    <X size={13} color="#9ca3af" />
+                  </button>
+                )}
+              </div>
+
+              {/* Sort dropdown */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <SlidersHorizontal size={14} color="#9ca3af" />
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, color: '#374151', background: '#fafafa', cursor: 'pointer', outline: 'none' }}
+                >
+                  <option value="title">Sort: Title</option>
+                  <option value="location">Sort: Location</option>
+                  <option value="price_per_night">Sort: Price</option>
+                  <option value="max_guests">Sort: Guests</option>
+                </select>
+                <button
+                  onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+                  style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e7eb', background: '#fafafa', fontSize: 13, color: '#374151', cursor: 'pointer', fontWeight: 500 }}
+                >
+                  {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
+                </button>
+              </div>
+
+              {/* Result count */}
+              <span style={{ fontSize: 12, color: '#9ca3af', flexShrink: 0 }}>
+                {filtered.length} of {listings.length} {listings.length === 1 ? 'property' : 'properties'}
+              </span>
+            </div>
+
+            {/* ── TABLE HEADER ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 0.8fr 1.2fr', alignItems: 'center', padding: '10px 20px', background: '#fafafa', borderBottom: '1px solid #f3f4f6' }}>
+              {[
+                { label: 'Property',     col: 'title'           },
+                { label: 'Location',     col: 'location'        },
+                { label: 'Price/Night',  col: 'price_per_night' },
+                { label: 'Guests',       col: 'max_guests'      },
+                { label: 'Actions',      col: null              },
+              ].map(({ label, col }) => (
+                <span
+                  key={label}
+                  onClick={() => col && toggleSort(col)}
+                  style={{
+                    fontSize: 11, fontWeight: 600, color: sortBy === col ? BLUE : '#9ca3af',
+                    textTransform: 'uppercase', letterSpacing: '0.06em',
+                    cursor: col ? 'pointer' : 'default',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    userSelect: 'none',
+                  }}
+                >
+                  {label} {col && <SortIcon col={col} />}
+                </span>
               ))}
             </div>
-            {/* Table rows */}
-            {listings.map((listing, i) => {
-              console.log(listing);
-              return(
-              <div
-                key={listing.id}
-                onMouseEnter={() => setHoverRow(i)}
-                onMouseLeave={() => setHoverRow(null)}
-                style={{
-                  display: 'flex', alignItems: 'center', padding: '16px 20px',
-                  borderBottom: i < listings.length - 1 ? '1px solid #f3f4f6' : 'none',
-                  background: hoverRow === i ? '#fafafa' : '#fff',
-                  transition: 'background 0.15s',
-                }}
-              >
-                <span style={{ flex: 2, fontWeight: 600, fontSize: 14, color: '#111' }}>{listing.title}</span>
-                <span style={{ flex: 1, fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <MapPin size={13} color="#d1d5db" /> {listing.location}
-                </span>
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: BLUE }}>
-                  ₱{Number(listing.price_per_night).toLocaleString()}
-                </span>
-                <span style={{ flex: 1, fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Users size={13} color="#d1d5db" /> {listing.max_guests}
-                </span>
-                <div style={{ flex: 1, display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => openPanel(listing)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', fontSize: '12px', fontWeight: 500, color: '#374151', cursor: 'pointer' }}
-                  >
-                    <Pencil size={12} /> Edit
-                  </button>
-                  <button
-                    onClick={() => openDeleteModal(listing.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: '8px', border: '1px solid #fee2e2', background: '#fff7f7', fontSize: '12px', fontWeight: 500, color: '#dc2626', cursor: 'pointer' }}
-                  >
-                    <Trash2 size={12} /> Delete
-                  </button>
-                </div>
+
+            {/* ── TABLE ROWS ── */}
+            {filtered.length === 0 ? (
+              <div style={{ padding: '48px 20px', textAlign: 'center' }}>
+                <Search size={28} color="#e5e7eb" style={{ margin: '0 auto 12px', display: 'block' }} />
+                <p style={{ fontSize: 14, fontWeight: 500, color: '#6b7280', margin: '0 0 4px' }}>No results found</p>
+                <p style={{ fontSize: 13, color: '#9ca3af', margin: 0 }}>Try a different search term</p>
               </div>
-              );
-            })}
+            ) : (
+              filtered.map((listing, i) => (
+                <div
+                  key={listing.id}
+                  onMouseEnter={() => setHoverRow(i)}
+                  onMouseLeave={() => setHoverRow(null)}
+                  style={{
+                    display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 0.8fr 1.2fr',
+                    alignItems: 'center', padding: '15px 20px',
+                    borderBottom: i < filtered.length - 1 ? '1px solid #f3f4f6' : 'none',
+                    background: hoverRow === i ? '#f9fafb' : '#fff',
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  {/* Property */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: BLUE_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Home size={15} color={BLUE} strokeWidth={1.75} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: '#111', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{listing.title}</p>
+                      <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>ID #{listing.id}</p>
+                    </div>
+                  </div>
+
+                  {/* Location */}
+                  <span style={{ fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <MapPin size={12} color="#d1d5db" strokeWidth={2} style={{ flexShrink: 0 }} />
+                    {listing.location}
+                  </span>
+
+                  {/* Price */}
+                  <span style={{ fontSize: 13, fontWeight: 700, color: BLUE }}>
+                    ₱{Number(listing.price_per_night).toLocaleString()}
+                  </span>
+
+                  {/* Guests */}
+                  <span style={{ fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Users size={12} color="#d1d5db" strokeWidth={2} />
+                    {listing.max_guests}
+                  </span>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      onClick={() => openPanel(listing)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', fontSize: 12, fontWeight: 500, color: '#374151', cursor: 'pointer', transition: 'all 0.15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = BLUE_LIGHT; e.currentTarget.style.borderColor = BLUE_BORDER; e.currentTarget.style.color = BLUE; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#374151'; }}
+                    >
+                      <Pencil size={12} /> Edit
+                    </button>
+                    <button
+                      onClick={() => openDeleteModal(listing.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, border: '1px solid #fee2e2', background: '#fff7f7', fontSize: 12, fontWeight: 500, color: '#dc2626', cursor: 'pointer', transition: 'all 0.15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#fff7f7'; }}
+                    >
+                      <Trash2 size={12} /> Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+
+            {/* ── TABLE FOOTER ── */}
+            {filtered.length > 0 && (
+              <div style={{ padding: '12px 20px', borderTop: '1px solid #f3f4f6', background: '#fafafa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: '#9ca3af' }}>
+                  Showing <strong style={{ color: '#374151' }}>{filtered.length}</strong> of <strong style={{ color: '#374151' }}>{listings.length}</strong> listings
+                </span>
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    style={{ fontSize: 12, color: BLUE, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+                  >
+                    Clear search
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -17,12 +17,19 @@ function AdminDashboard() {
     const user = JSON.parse(localStorage.getItem('user'));
 
     useEffect(() => {
-        if (!user || user.role !== 'admin') { navigate('/'); return; }
-        api.get('/admin/stats')
-            .then(res => setStats(res.data))
-            .catch(console.error)
-            .finally(() => setStatsLoading(false));
-    }, []);
+    const user = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('token');
+
+    if (!token || !user || user.role !== 'admin') {
+        navigate('/');
+        return;
+    }
+
+    api.get('/admin/stats')
+        .then(res => setStats(res.data))
+        .catch(console.error)
+        .finally(() => setStatsLoading(false));
+}, []);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -39,7 +46,7 @@ function AdminDashboard() {
                 user={user}
                 onLogout={handleLogout}
             />
-            <main style={styles.main}>
+            <main style={{ ...styles.main, maxWidth: '100%', padding: '0' }}>
                 {activePage === 'dashboard' && <AdminDashboardPage stats={stats} loading={statsLoading} />}
                 {/* {activePage === 'users'     && <AdminUsersPage />}
                 {activePage === 'listings'  && <AdminListingsPage />}

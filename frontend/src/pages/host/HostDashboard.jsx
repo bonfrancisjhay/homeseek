@@ -39,7 +39,7 @@ function HostDashboard() {
                 onLogout={handleLogout}
             />
 
-            <main style={styles.main}>
+            <main style={{ ...styles.main, maxWidth: '100%', padding: '0' }}>
 
             {activePage === 'dashboard' && (
                     <DashboardPage

@@ -17,10 +17,12 @@ import axios from 'axios';
 
 
 const AdminRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (!token || user?.role !== 'admin') return <Navigate to="/" replace />;
-  return children;
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!token || !user || user.role !== 'admin') {
+        return <Navigate to="/" replace />;
+    }
+    return children;
 };
 
 function App() {
@@ -85,7 +87,7 @@ function App() {
           }
         />
          <Route
-          path="/admin"
+          path="/admin/*"
           element={
             <AdminRoute>
               <AdminDashboard />
