@@ -8,11 +8,20 @@ import Listings from './pages/Listings';
 import CreateListing from './pages/CreateListing';
 import ListingDetail from './pages/ListingDetail';
 import HostDashboard from './pages/host/HostDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import TrialBanner from './components/TrialBanner';
 import SubscriptionModal from './components/SubscriptionModal'; 
 import PaymentSuccess from "./pages/PaymentSuccess"; 
 import PaymentFailed  from "./pages/PaymentFailed";  
 import axios from 'axios';
+
+
+const AdminRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (!token || user?.role !== 'admin') return <Navigate to="/" replace />;
+  return children;
+};
 
 function App() {
   const [searchFilter, setSearchFilter]       = useState('');
@@ -58,6 +67,8 @@ function App() {
           element={
             token && user?.role === 'host'
               ? <Navigate to="/host/dashboard" />
+              : token && user?.role === 'admin'
+              ? <Navigate to="/admin" />       
               : <Listings searchFilter={searchFilter} />
           }
         />
@@ -71,6 +82,14 @@ function App() {
             JSON.parse(localStorage.getItem('user'))?.role === 'host'
               ? <HostDashboard />
               : <Navigate to="/login" />
+          }
+        />
+         <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
           }
         />
         <Route path="/payment/success" element={<PaymentSuccess />} /> 

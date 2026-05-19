@@ -17,7 +17,6 @@ export function useListing() {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Delete this listing?')) return;
         try {
             await api.delete(`/listings/${id}`);
             setListings(prev => prev.filter(l => l.id !== id));

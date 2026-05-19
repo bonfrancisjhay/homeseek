@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'; 
 
 function ListingCard({ listing, onClick, index }) {
-    console.log('images field:', listing.images, typeof listing.images);
     const [liked, setLiked] = useState(false);
     const [imgError, setImgError] = useState(false);
 
@@ -37,7 +36,7 @@ function ListingCard({ listing, onClick, index }) {
     };
 
     const imgSrc = getImageSrc();
-    console.log('imgSrc:', imgSrc, 'imgError:', imgError);
+
 
     return (
         <div style={styles.card} onClick={onClick}>

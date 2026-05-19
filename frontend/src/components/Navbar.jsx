@@ -170,7 +170,7 @@ function Navbar({ onSearch }) {
             {token ? (
               <>
                 <span className="text-sm text-gray-500 font-medium">Hi, {user?.name}</span>
-                {user?.role !== 'host' && (
+                {user?.role !== 'host' && user?.role !== 'admin' && (
                   <button
                     onClick={handleLogout}
                     className="border border-gray-200 text-sm text-gray-700 font-medium px-4 py-2 rounded-full hover:bg-gray-50 transition"

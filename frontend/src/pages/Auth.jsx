@@ -87,27 +87,29 @@ function Auth() {
 
     // Step 2 Login — Submit password
     const handleLogin = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-        try {
-            const res = await api.post('/login', { email, password: form.password });
-            localStorage.setItem('token', res.data.token);
-            localStorage.setItem('user', JSON.stringify(res.data.user));
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+        const res = await api.post('/login', { email, password: form.password });
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
 
-            const role = res.data.user.role;
-            if (role === 'host') {
-                navigate('/host/dashboard');
-            } else {
-                navigate('/');
-            }
-            window.location.reload();
-        } catch (err) {
-            setError(err.response?.data?.message || 'Invalid password');
-        } finally {
-            setLoading(false);
+        const role = res.data.user.role;
+        if (role === 'admin') {
+            navigate('/admin');          // ADD THIS
+        } else if (role === 'host') {
+            navigate('/host/dashboard');
+        } else {
+            navigate('/');
         }
-    };
+        window.location.reload();
+    } catch (err) {
+        setError(err.response?.data?.message || 'Invalid password');
+    } finally {
+        setLoading(false);
+    }
+};
 
     // Step 2 Register — Verify OTP
     const handleVerifyOtp = async (e) => {

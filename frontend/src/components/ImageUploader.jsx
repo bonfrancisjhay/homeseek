@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { ImagePlus, X } from 'lucide-react';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE_URL = (import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
 function ImageUploader({ existingImages, onFilesChange, onRemoveExisting }) {
     const safeImages = Array.isArray(existingImages) ? existingImages : [];

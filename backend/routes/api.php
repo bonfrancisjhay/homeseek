@@ -7,6 +7,8 @@ use App\Http\Controllers\ListingController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Subscription\PayMongoController;  
 use App\Http\Controllers\Subscription\TrialController;     
+use App\Http\Controllers\AdminController;
+
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -41,4 +43,22 @@ Route::middleware(['auth:sanctum', 'check.subscription'])->group(function () {
     Route::post('/listings/{id}',      [ListingController::class, 'update']);
     Route::delete('/listings/{id}',   [ListingController::class, 'destroy']);
     Route::get('/host/listings',      [ListingController::class, 'hostListings']);
+});
+
+// Admin-only routes
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/stats',    [AdminController::class, 'stats']);
+
+    // Users
+    Route::get('/users',                    [AdminController::class, 'getUsers']);
+    Route::delete('/users/{user}',          [AdminController::class, 'deleteUser']);
+    Route::patch('/users/{user}/role',      [AdminController::class, 'updateUserRole']);
+
+    // Listings
+    Route::get('/listings',                 [AdminController::class, 'getListings']);
+    Route::delete('/listings/{listing}',    [AdminController::class, 'deleteListing']);
+
+    // Bookings
+    Route::get('/bookings',                         [AdminController::class, 'getBookings']);
+    Route::patch('/bookings/{booking}/status',      [AdminController::class, 'updateBookingStatus']);
 });
