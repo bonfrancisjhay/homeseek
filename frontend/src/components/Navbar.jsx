@@ -5,6 +5,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Search, MapPin, CalendarDays, Users } from 'lucide-react';
 import logo from '../assets/homeseek_logo_prototype1.png';
+import { createPortal } from 'react-dom';
 
 const SUGGESTED_DESTINATIONS = [
   { icon: '📍', iconBg: 'bg-blue-50',  name: 'Nearby',              desc: "Find what's around you",      isNearby: true },
@@ -17,24 +18,28 @@ const SUGGESTED_DESTINATIONS = [
 ];
 
 const GUEST_TYPES = [
-  { key: 'adults',   label: 'Adults',   desc: 'Ages 13 or above',            min: 0              },
-  { key: 'children', label: 'Children', desc: 'Ages 2 – 12',                 min: 0              },
-  { key: 'infants',  label: 'Infants',  desc: 'Under 2',                     min: 0              },
-  { key: 'pets',     label: 'Pets',     desc: 'Bringing a service animal?',  min: 0, descLink: true },
+  { key: 'adults',   label: 'Adults',   desc: 'Ages 13 or above',           min: 0               },
+  { key: 'children', label: 'Children', desc: 'Ages 2 – 12',                min: 0               },
+  { key: 'infants',  label: 'Infants',  desc: 'Under 2',                    min: 0               },
+  { key: 'pets',     label: 'Pets',     desc: 'Bringing a service animal?', min: 0, descLink: true },
 ];
 
 function Navbar({ onSearch }) {
-  const [hoverHost, setHoverHost]           = useState(false);
-  const [scrolled, setScrolled]             = useState(false);
-  const [showModal, setShowModal]           = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [showGuestPicker, setShowGuestPicker] = useState(false);
-  const [dateTab, setDateTab]               = useState('Dates');
-  const [startDate, setStartDate]           = useState(null);
-  const [endDate, setEndDate]               = useState(null);
-  const [locationInput, setLocationInput]   = useState('');
-  const [guests, setGuests]                 = useState({ adults: 0, children: 0, infants: 0, pets: 0 });
+  const [scrolled,         setScrolled]         = useState(false);
+  const [showModal,        setShowModal]         = useState(false);
+  const [showDatePicker,   setShowDatePicker]    = useState(false);
+  const [showSuggestions,  setShowSuggestions]   = useState(false);
+  const [showGuestPicker,  setShowGuestPicker]   = useState(false);
+  const [dateTab,          setDateTab]           = useState('Dates');
+  const [startDate,        setStartDate]         = useState(null);
+  const [endDate,          setEndDate]           = useState(null);
+  const [locationInput,    setLocationInput]     = useState('');
+  const [guests,           setGuests]            = useState({ adults: 0, children: 0, infants: 0, pets: 0 });
+
+  // For portal positioning
+  const [locationRect, setLocationRect] = useState(null);
+  const [dateRect,     setDateRect]     = useState(null);
+  const [guestRect,    setGuestRect]    = useState(null);
 
   const dateRef     = useRef(null);
   const locationRef = useRef(null);
@@ -46,12 +51,33 @@ function Navbar({ onSearch }) {
   const user      = JSON.parse(localStorage.getItem('user'));
   const isListingsPage = location.pathname === '/listings' || location.pathname === '/';
 
+  // ── Scroll with hysteresis (no rapid flipping) ──
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 60);
-    window.addEventListener('scroll', handleScroll);
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const y = window.scrollY;
+
+          setShowSuggestions(false);
+          setShowDatePicker(false);
+          setShowGuestPicker(false);
+
+          setScrolled(prev => {
+            if (!prev && y > 120) return true;
+            if (prev  && y < 60) return false;
+            return prev;
+          });
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ── Click outside to close dropdowns ──
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dateRef.current     && !dateRef.current.contains(e.target))     setShowDatePicker(false);
@@ -62,6 +88,24 @@ function Navbar({ onSearch }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ── Update portal rects when dropdowns open ──
+  const openSuggestions = () => {
+    setLocationRect(locationRef.current?.getBoundingClientRect());
+    setShowSuggestions(true);
+  };
+  const openDatePicker = () => {
+    setDateRect(dateRef.current?.getBoundingClientRect());
+    setShowSuggestions(false);
+    setShowGuestPicker(false);
+    setShowDatePicker(v => !v);
+  };
+  const openGuestPicker = () => {
+    setGuestRect(guestRef.current?.getBoundingClientRect());
+    setShowSuggestions(false);
+    setShowDatePicker(false);
+    setShowGuestPicker(v => !v);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -70,7 +114,7 @@ function Navbar({ onSearch }) {
   };
 
   const totalGuests = guests.adults + guests.children;
-  const guestLabel  = () => {
+  const guestLabel = () => {
     if (totalGuests === 0 && guests.infants === 0 && guests.pets === 0) return 'Add guests';
     const parts = [];
     if (totalGuests > 0)    parts.push(`${totalGuests} guest${totalGuests > 1 ? 's' : ''}`);
@@ -93,7 +137,10 @@ function Navbar({ onSearch }) {
   const handleSelectDestination = (dest) => {
     setLocationInput(dest.isNearby ? 'Nearby' : dest.name);
     setShowSuggestions(false);
-    setTimeout(() => setShowDatePicker(true), 100);
+    setTimeout(() => {
+      setDateRect(dateRef.current?.getBoundingClientRect());
+      setShowDatePicker(true);
+    }, 100);
   };
 
   const filteredSuggestions = locationInput
@@ -141,7 +188,7 @@ function Navbar({ onSearch }) {
             <img src={logo} alt="Homeseek" className="h-[120px] w-auto object-contain" />
           </Link>
 
-          {/* Mini pill (visible on scroll) */}
+          {/* Mini pill */}
           {isListingsPage && (
             <div
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -193,26 +240,26 @@ function Navbar({ onSearch }) {
         {/* ── SEARCH BAR ── */}
         {isListingsPage && (
           <div
-            className="overflow-visible transition-all duration-400"
             style={{
-              maxHeight:     scrolled ? '0px' : '120px',
-              opacity:       scrolled ? 0 : 1,
+              maxHeight:  scrolled ? '0px' : '120px',
+              opacity:    scrolled ? 0 : 1,
+              visibility:  scrolled ? 'hidden' : 'visible',
               pointerEvents: scrolled ? 'none' : 'auto',
-              transition:    'max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease',
+              overflow:   'hidden',   // safe now — dropdowns are portaled out
+              transition: 'max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease',
             }}
           >
-            <div className="flex justify-center px-6 pb-4 relative z-[200]">
+            <div className="flex justify-center px-6 pb-4">
               <form
                 onSubmit={handleSearch}
-                className="flex items-center bg-white border border-gray-200 rounded-full shadow-lg max-w-[860px] w-full relative"
+                className="flex items-center bg-white border border-gray-200 rounded-full shadow-lg max-w-[860px] w-full"
                 style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.10)' }}
               >
-
                 {/* WHERE */}
                 <div
                   ref={locationRef}
-                  className="flex flex-col px-5 py-3 flex-1 cursor-pointer relative"
-                  onClick={() => setShowSuggestions(true)}
+                  className="flex flex-col px-5 py-3 flex-1 cursor-pointer"
+                  onClick={openSuggestions}
                 >
                   <span className="text-[11px] font-bold text-gray-800 tracking-wide uppercase flex items-center gap-1">
                     <MapPin size={11} className="text-[#3b82f6]" /> Where
@@ -222,36 +269,9 @@ function Navbar({ onSearch }) {
                     type="text"
                     placeholder="Search destinations"
                     value={locationInput}
-                    onChange={(e) => { setLocationInput(e.target.value); setShowSuggestions(true); }}
-                    onFocus={() => setShowSuggestions(true)}
+                    onChange={(e) => { setLocationInput(e.target.value); openSuggestions(); }}
+                    onFocus={openSuggestions}
                   />
-
-                  {/* Suggestions dropdown */}
-                  {showSuggestions && filteredSuggestions.length > 0 && (
-                    <div
-                      className="absolute top-[70px] left-0 bg-white rounded-2xl shadow-2xl z-[300] py-4 px-2 border border-gray-100 w-[340px] max-h-[400px] overflow-y-auto"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-4 mb-2">
-                        Suggested destinations
-                      </p>
-                      {filteredSuggestions.map((dest, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-3.5 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-gray-50 transition"
-                          onClick={() => handleSelectDestination(dest)}
-                        >
-                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${dest.iconBg}`}>
-                            <span className="text-xl">{dest.icon}</span>
-                          </div>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-sm font-semibold text-gray-800">{dest.name}</span>
-                            <span className="text-[13px] text-gray-400">{dest.desc}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 <div className="w-px h-8 bg-gray-200 flex-shrink-0" />
@@ -259,8 +279,8 @@ function Navbar({ onSearch }) {
                 {/* WHEN */}
                 <div
                   ref={dateRef}
-                  className="flex flex-col px-5 py-3 flex-1 cursor-pointer relative"
-                  onClick={() => { setShowSuggestions(false); setShowGuestPicker(false); setShowDatePicker(v => !v); }}
+                  className="flex flex-col px-5 py-3 flex-1 cursor-pointer"
+                  onClick={openDatePicker}
                 >
                   <span className="text-[11px] font-bold text-gray-800 tracking-wide uppercase flex items-center gap-1">
                     <CalendarDays size={11} className="text-[#3b82f6]" /> When
@@ -268,92 +288,6 @@ function Navbar({ onSearch }) {
                   <span className={`text-[13px] mt-0.5 ${startDate ? 'text-gray-700' : 'text-gray-400'}`}>
                     {dateLabel}
                   </span>
-
-                  {/* Calendar dropdown */}
-                  {showDatePicker && (
-                    <div
-                      className="absolute top-[70px] left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl z-[300] p-5 border border-gray-100 w-max min-w-[680px]"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      {/* Tabs */}
-                      <div className="flex justify-center gap-1 bg-gray-100 rounded-full p-1 w-fit mx-auto mb-5">
-                        {['Dates', 'Months', 'Flexible'].map(tab => (
-                          <button
-                            key={tab}
-                            type="button"
-                            onClick={() => setDateTab(tab)}
-                            className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
-                              dateTab === tab
-                                ? 'bg-white text-gray-900 font-semibold shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                          >
-                            {tab}
-                          </button>
-                        ))}
-                      </div>
-
-                      {dateTab === 'Dates' && (
-                        <DatePicker
-                          selected={startDate}
-                          onChange={(dates) => {
-                            const [start, end] = dates;
-                            setStartDate(start); setEndDate(end);
-                            if (start && end) setShowDatePicker(false);
-                          }}
-                          startDate={startDate} endDate={endDate}
-                          selectsRange inline monthsShown={2} minDate={new Date()}
-                        />
-                      )}
-
-                      {dateTab === 'Months' && (
-                        <div className="flex flex-wrap gap-2.5 justify-center py-2 min-w-[500px]">
-                          {months.map((m, i) => {
-                            const now  = new Date();
-                            const year = now.getMonth() > i ? now.getFullYear() + 1 : now.getFullYear();
-                            return (
-                              <button
-                                key={m}
-                                type="button"
-                                className="flex flex-col items-center px-5 py-3.5 border border-gray-200 rounded-xl bg-white hover:border-[#3b82f6] hover:bg-blue-50 transition min-w-[90px]"
-                                onClick={() => { setStartDate(new Date(year, i, 1)); setEndDate(new Date(year, i + 1, 0)); setShowDatePicker(false); }}
-                              >
-                                <span className="text-sm font-semibold text-gray-800">{m}</span>
-                                <span className="text-xs text-gray-400 mt-0.5">{year}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {dateTab === 'Flexible' && (
-                        <div className="flex flex-wrap gap-2.5 justify-center py-2 min-w-[500px]">
-                          {flexOptions.map(opt => (
-                            <button
-                              key={opt.label}
-                              type="button"
-                              className="flex flex-col items-center px-6 py-3.5 border border-gray-200 rounded-xl bg-white hover:border-[#3b82f6] hover:bg-blue-50 transition min-w-[90px]"
-                              onClick={() => { const s = new Date(); const e = new Date(); e.setDate(e.getDate() + opt.days); setStartDate(s); setEndDate(e); setShowDatePicker(false); }}
-                            >
-                              <span className="text-sm font-semibold text-gray-800">{opt.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {(startDate || endDate) && (
-                        <div className="text-center mt-3">
-                          <button
-                            type="button"
-                            className="text-sm text-gray-500 underline hover:text-gray-700 transition"
-                            onClick={() => { setStartDate(null); setEndDate(null); }}
-                          >
-                            Clear dates
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 <div className="w-px h-8 bg-gray-200 flex-shrink-0" />
@@ -361,8 +295,8 @@ function Navbar({ onSearch }) {
                 {/* WHO */}
                 <div
                   ref={guestRef}
-                  className="flex flex-col px-5 py-3 flex-1 cursor-pointer relative"
-                  onClick={() => { setShowSuggestions(false); setShowDatePicker(false); setShowGuestPicker(v => !v); }}
+                  className="flex flex-col px-5 py-3 flex-1 cursor-pointer"
+                  onClick={openGuestPicker}
                 >
                   <span className="text-[11px] font-bold text-gray-800 tracking-wide uppercase flex items-center gap-1">
                     <Users size={11} className="text-[#3b82f6]" /> Who
@@ -370,48 +304,6 @@ function Navbar({ onSearch }) {
                   <span className={`text-[13px] mt-0.5 ${totalGuests > 0 ? 'text-gray-700' : 'text-gray-400'}`}>
                     {guestLabel()}
                   </span>
-
-                  {/* Guest picker dropdown */}
-                  {showGuestPicker && (
-                    <div
-                      className="absolute top-[70px] right-0 bg-white rounded-2xl shadow-2xl z-[300] px-7 py-4 border border-gray-100 w-[340px]"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      {GUEST_TYPES.map((type, i) => (
-                        <div key={type.key}>
-                          <div className="flex items-center justify-between py-4">
-                            <div>
-                              <p className="text-[15px] font-semibold text-gray-800">{type.label}</p>
-                              <p className={`text-[13px] mt-0.5 ${type.descLink ? 'text-gray-800 underline cursor-pointer' : 'text-gray-400'}`}>
-                                {type.desc}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-3.5">
-                              <button
-                                type="button"
-                                disabled={guests[type.key] === 0}
-                                onClick={() => adjustGuest(type.key, -1)}
-                                className={`w-8 h-8 rounded-full border border-gray-300 bg-white text-gray-500 flex items-center justify-center text-lg leading-none transition hover:border-gray-500 ${guests[type.key] === 0 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
-                              >
-                                −
-                              </button>
-                              <span className="text-[15px] text-gray-800 min-w-[16px] text-center">
-                                {guests[type.key]}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => adjustGuest(type.key, 1)}
-                                className="w-8 h-8 rounded-full border border-gray-300 bg-white text-gray-500 flex items-center justify-center text-lg leading-none cursor-pointer hover:border-gray-500 transition"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                          {i < GUEST_TYPES.length - 1 && <div className="h-px bg-gray-100" />}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 {/* Search button */}
@@ -426,6 +318,156 @@ function Navbar({ onSearch }) {
           </div>
         )}
       </nav>
+
+      {/* ── PORTALED DROPDOWNS (render outside nav so overflow:hidden can't clip them) ── */}
+
+      {showSuggestions && locationRect && filteredSuggestions.length > 0 && createPortal(
+        <div
+          style={{ position: 'fixed', top: locationRect.bottom + 8, left: locationRect.left, zIndex: 9999 }}
+          className="bg-white rounded-2xl shadow-2xl py-4 px-2 border border-gray-100 w-[340px] max-h-[400px] overflow-y-auto"
+          onMouseDown={e => e.stopPropagation()}
+        >
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-4 mb-2">
+            Suggested destinations
+          </p>
+          {filteredSuggestions.map((dest, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3.5 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-gray-50 transition"
+              onClick={() => handleSelectDestination(dest)}
+            >
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${dest.iconBg}`}>
+                <span className="text-xl">{dest.icon}</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold text-gray-800">{dest.name}</span>
+                <span className="text-[13px] text-gray-400">{dest.desc}</span>
+              </div>
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
+
+      {showDatePicker && dateRect && createPortal(
+        <div
+          style={{ position: 'fixed', top: dateRect.bottom + 8, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}
+          className="bg-white rounded-2xl shadow-2xl p-5 border border-gray-100 w-max min-w-[680px]"
+          onMouseDown={e => e.stopPropagation()}
+        >
+          {/* Tabs */}
+          <div className="flex justify-center gap-1 bg-gray-100 rounded-full p-1 w-fit mx-auto mb-5">
+            {['Dates', 'Months', 'Flexible'].map(tab => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setDateTab(tab)}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                  dateTab === tab ? 'bg-white text-gray-900 font-semibold shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {dateTab === 'Dates' && (
+            <DatePicker
+              selected={startDate}
+              onChange={(dates) => {
+                const [start, end] = dates;
+                setStartDate(start); setEndDate(end);
+                if (start && end) setShowDatePicker(false);
+              }}
+              startDate={startDate} endDate={endDate}
+              selectsRange inline monthsShown={2} minDate={new Date()}
+            />
+          )}
+
+          {dateTab === 'Months' && (
+            <div className="flex flex-wrap gap-2.5 justify-center py-2 min-w-[500px]">
+              {months.map((m, i) => {
+                const now  = new Date();
+                const year = now.getMonth() > i ? now.getFullYear() + 1 : now.getFullYear();
+                return (
+                  <button
+                    key={m} type="button"
+                    className="flex flex-col items-center px-5 py-3.5 border border-gray-200 rounded-xl bg-white hover:border-[#3b82f6] hover:bg-blue-50 transition min-w-[90px]"
+                    onClick={() => { setStartDate(new Date(year, i, 1)); setEndDate(new Date(year, i + 1, 0)); setShowDatePicker(false); }}
+                  >
+                    <span className="text-sm font-semibold text-gray-800">{m}</span>
+                    <span className="text-xs text-gray-400 mt-0.5">{year}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {dateTab === 'Flexible' && (
+            <div className="flex flex-wrap gap-2.5 justify-center py-2 min-w-[500px]">
+              {flexOptions.map(opt => (
+                <button
+                  key={opt.label} type="button"
+                  className="flex flex-col items-center px-6 py-3.5 border border-gray-200 rounded-xl bg-white hover:border-[#3b82f6] hover:bg-blue-50 transition min-w-[90px]"
+                  onClick={() => { const s = new Date(); const e = new Date(); e.setDate(e.getDate() + opt.days); setStartDate(s); setEndDate(e); setShowDatePicker(false); }}
+                >
+                  <span className="text-sm font-semibold text-gray-800">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(startDate || endDate) && (
+            <div className="text-center mt-3">
+              <button
+                type="button"
+                className="text-sm text-gray-500 underline hover:text-gray-700 transition"
+                onClick={() => { setStartDate(null); setEndDate(null); }}
+              >
+                Clear dates
+              </button>
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
+
+      {showGuestPicker && guestRect && createPortal(
+        <div
+          style={{ position: 'fixed', top: guestRect.bottom + 8, left: guestRect.right - 340, zIndex: 9999 }}
+          className="bg-white rounded-2xl shadow-2xl px-7 py-4 border border-gray-100 w-[340px]"
+          onMouseDown={e => e.stopPropagation()}
+        >
+          {GUEST_TYPES.map((type, i) => (
+            <div key={type.key}>
+              <div className="flex items-center justify-between py-4">
+                <div>
+                  <p className="text-[15px] font-semibold text-gray-800">{type.label}</p>
+                  <p className={`text-[13px] mt-0.5 ${type.descLink ? 'text-gray-800 underline cursor-pointer' : 'text-gray-400'}`}>
+                    {type.desc}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3.5">
+                  <button
+                    type="button"
+                    disabled={guests[type.key] === 0}
+                    onClick={() => adjustGuest(type.key, -1)}
+                    className={`w-8 h-8 rounded-full border border-gray-300 bg-white text-gray-500 flex items-center justify-center text-lg leading-none transition hover:border-gray-500 ${guests[type.key] === 0 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >−</button>
+                  <span className="text-[15px] text-gray-800 min-w-[16px] text-center">{guests[type.key]}</span>
+                  <button
+                    type="button"
+                    onClick={() => adjustGuest(type.key, 1)}
+                    className="w-8 h-8 rounded-full border border-gray-300 bg-white text-gray-500 flex items-center justify-center text-lg leading-none cursor-pointer hover:border-gray-500 transition"
+                  >+</button>
+                </div>
+              </div>
+              {i < GUEST_TYPES.length - 1 && <div className="h-px bg-gray-100" />}
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
     </>
   );
 }

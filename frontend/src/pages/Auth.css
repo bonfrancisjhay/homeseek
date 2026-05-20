@@ -6,6 +6,23 @@
     justify-content: center;
     background-color: #fff;
     padding: 40px 24px;
+    background-image: url('../assets/homeseekbg.jpg');
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    
+}
+.auth-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4); /* adjust 0.4 to make darker/lighter */
+  z-index: 0;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1; /* keeps card above the dark overlay */
 }
 
 /* Card */
