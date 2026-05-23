@@ -41,6 +41,9 @@ function Navbar({ onSearch }) {
   const [dateRect,     setDateRect]     = useState(null);
   const [guestRect,    setGuestRect]    = useState(null);
 
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+
   const dateRef     = useRef(null);
   const locationRef = useRef(null);
   const guestRef    = useRef(null);
@@ -83,6 +86,8 @@ function Navbar({ onSearch }) {
       if (dateRef.current     && !dateRef.current.contains(e.target))     setShowDatePicker(false);
       if (locationRef.current && !locationRef.current.contains(e.target)) setShowSuggestions(false);
       if (guestRef.current    && !guestRef.current.contains(e.target))    setShowGuestPicker(false);
+      if (menuRef.current     && !menuRef.current.contains(e.target))     setShowMenu(false); // ← add this
+
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -215,17 +220,44 @@ function Navbar({ onSearch }) {
           {/* Right side */}
           <div className="flex items-center gap-4 flex-shrink-0">
             {token ? (
-              <>
-                <span className="text-sm text-gray-500 font-medium">Hi, {user?.name}</span>
-                {user?.role !== 'host' && user?.role !== 'admin' && (
-                  <button
-                    onClick={handleLogout}
-                    className="border border-gray-200 text-sm text-gray-700 font-medium px-4 py-2 rounded-full hover:bg-gray-50 transition"
-                  >
-                    Logout
-                  </button>
-                )}
-              </>
+  <>
+    {user?.role !== 'host' && user?.role !== 'admin' && (
+      <div className="relative flex items-center gap-3" ref={menuRef}>
+  {/* Name — plain, not clickable */}
+  <span className="text-sm text-gray-500 font-medium">Hi, {user?.name}</span>
+
+  {/* Burger icon — separate button */}
+  <button
+    onClick={() => setShowMenu(v => !v)}
+    className="flex flex-col gap-[4px] border border-gray-200 rounded-full p-2.5 hover:shadow-md transition"
+  >
+    <span className="w-4 h-[1.5px] bg-gray-600 block" />
+    <span className="w-4 h-[1.5px] bg-gray-600 block" />
+    <span className="w-4 h-[1.5px] bg-gray-600 block" />
+  </button>
+
+  {/* Dropdown */}
+  {showMenu && (
+    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+      <Link
+        to="/my-bookings"
+        onClick={() => setShowMenu(false)}
+        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
+      >
+        🗓️ My Bookings
+      </Link>
+      <div className="h-px bg-gray-100 mx-3" />
+      <button
+        onClick={handleLogout}
+        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
+      >
+        🚪 Logout
+      </button>
+    </div>
+  )}
+</div>
+    )}
+  </>
             ) : (
               <Link
                 to="/register"

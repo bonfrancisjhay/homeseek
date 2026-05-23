@@ -71,6 +71,7 @@ export default function ListingDetail() {
         listing_id: id,
         check_in:   form.check_in,
         check_out:  form.check_out,
+        guests:     form.guests,
       });
       setSuccess(true);
     } catch (err) {
@@ -91,7 +92,7 @@ export default function ListingDetail() {
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-rose-500 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
         <p className="text-gray-400 text-sm">Loading listing…</p>
       </div>
     </div>

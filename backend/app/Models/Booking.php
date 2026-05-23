@@ -11,8 +11,16 @@ class Booking extends Model
         'listing_id',
         'check_in',
         'check_out',
+        'guests',
         'total_price',
-        'status'
+        'status',
+    ];
+
+    protected $casts = [
+        'check_in'    => 'date',
+        'check_out'   => 'date',
+        'total_price' => 'float',
+        'guests'      => 'integer',
     ];
 
     // A booking belongs to a user (guest)

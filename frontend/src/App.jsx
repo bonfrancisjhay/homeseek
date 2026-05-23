@@ -7,6 +7,7 @@ import Auth from './pages/Auth';
 import Listings from './pages/Listings';
 import CreateListing from './pages/CreateListing';
 import ListingDetail from './pages/ListingDetail';
+import MyBookings from './pages/MyBookings'; // adjust path if needed
 import HostDashboard from './pages/host/HostDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import TrialBanner from './components/TrialBanner';
@@ -77,6 +78,7 @@ function App() {
         <Route path="/register"       element={<Auth />} />
         <Route path="/createlisting"  element={<CreateListing />} />
         <Route path="/listings/:id"   element={<ListingDetail />} />
+        <Route path="/my-bookings" element={<MyBookings />} />
         <Route
           path="/host/dashboard"
           element={
