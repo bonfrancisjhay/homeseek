@@ -5,66 +5,70 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\BookingPaymentController;
 use App\Http\Controllers\Subscription\PayMongoController;
 use App\Http\Controllers\Subscription\TrialController;
 use App\Http\Controllers\AdminController;
 
-
-// Public routes
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login',    [AuthController::class, 'login']);
-Route::get('/listings',  [ListingController::class, 'index']);
+// ── PUBLIC ROUTES ──────────────────────────────────────
+Route::post('/register',     [AuthController::class, 'register']);
+Route::post('/login',        [AuthController::class, 'login']);
+Route::get('/listings',      [ListingController::class, 'index']);
 Route::get('/listings/{id}', [ListingController::class, 'show']);
 
-// Public: get booked dates for a listing (so guests see unavailable dates)
+// Public: booked dates for a listing (guests see unavailable dates)
 Route::get('/listings/{id}/booked-dates', [BookingController::class, 'bookedDates']);
 
 Route::post('/send-otp',    [AuthController::class, 'sendOtp']);
 Route::post('/check-email', [AuthController::class, 'checkEmail']);
 Route::post('/verify-otp',  [AuthController::class, 'verifyOtp']);
 
-// PayMongo webhook — no auth (PayMongo calls this directly)
-Route::post('/webhook/paymongo', [PayMongoController::class, 'webhook']);
+// PayMongo webhooks — no auth (PayMongo calls these directly)
+Route::post('/webhook/paymongo',         [PayMongoController::class,        'webhook']);
+Route::post('/webhook/paymongo-booking', [BookingPaymentController::class,  'webhook']);
 
-// Protected routes (logged in only)
+// ── PROTECTED ROUTES (logged in only) ──────────────────
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Bookings
-    Route::get('/bookings',              [BookingController::class, 'index']);
-    Route::post('/bookings',             [BookingController::class, 'store']);
+    // Guest: view own bookings & cancel
+    Route::get('/bookings',               [BookingController::class, 'index']);
     Route::patch('/bookings/{id}/cancel', [BookingController::class, 'cancel']);
 
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+    // Guest: booking payment flow
+    Route::post('/bookings/upload-id',    [BookingPaymentController::class, 'uploadId']);
+    Route::post('/bookings/pay',          [BookingPaymentController::class, 'createBookingPayment']);
+
+    Route::get('/user', fn(Request $r) => $r->user());
 
     // Subscription
-    Route::get('/subscription/status', [TrialController::class, 'status']);
-    Route::post('/subscription/pay',   [PayMongoController::class, 'createPayment']);
+    Route::get('/subscription/status', [TrialController::class,       'status']);
+    Route::post('/subscription/pay',   [PayMongoController::class,    'createPayment']);
 });
 
-// Host-only routes
+// ── HOST ROUTES ─────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'check.subscription'])->group(function () {
     Route::post('/listings',        [ListingController::class, 'store']);
     Route::put('/listings/{id}',    [ListingController::class, 'update']);
     Route::delete('/listings/{id}', [ListingController::class, 'destroy']);
     Route::get('/host/listings',    [ListingController::class, 'hostListings']);
-    Route::get('/host/bookings', [BookingController::class, 'hostBookings']);
-    Route::patch('/host/bookings/{id}/status', [BookingController::class, 'updateStatus']);
+
+    // Host: manage bookings on their listings
+    Route::get('/host/bookings',                  [BookingController::class, 'hostBookings']);
+    Route::patch('/host/bookings/{id}/status',    [BookingController::class, 'updateStatus']);
 });
 
-// Admin-only routes
+// ── ADMIN ROUTES ────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     Route::get('/stats', [AdminController::class, 'stats']);
 
-    Route::get('/users',                 [AdminController::class, 'getUsers']);
-    Route::delete('/users/{user}',       [AdminController::class, 'deleteUser']);
-    Route::patch('/users/{user}/role',   [AdminController::class, 'updateUserRole']);
+    Route::get('/users',               [AdminController::class, 'getUsers']);
+    Route::delete('/users/{user}',     [AdminController::class, 'deleteUser']);
+    Route::patch('/users/{user}/role', [AdminController::class, 'updateUserRole']);
 
-    Route::get('/listings',              [AdminController::class, 'getListings']);
-    Route::delete('/listings/{listing}', [AdminController::class, 'deleteListing']);
+    Route::get('/listings',                [AdminController::class, 'getListings']);
+    Route::delete('/listings/{listing}',   [AdminController::class, 'deleteListing']);
 
-    Route::get('/bookings',                      [AdminController::class, 'getBookings']);
-    Route::patch('/bookings/{booking}/status',   [AdminController::class, 'updateBookingStatus']);
+    Route::get('/bookings',                     [AdminController::class, 'getBookings']);
+    Route::patch('/bookings/{booking}/status',  [AdminController::class, 'updateBookingStatus']);
 });

@@ -12,6 +12,8 @@ class Booking extends Model
         'check_in',
         'check_out',
         'guests',
+        'valid_id',
+        'paymongo_payment_id',
         'total_price',
         'status',
     ];
@@ -23,13 +25,11 @@ class Booking extends Model
         'guests'      => 'integer',
     ];
 
-    // A booking belongs to a user (guest)
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // A booking belongs to a listing
     public function listing()
     {
         return $this->belongsTo(Listing::class);
