@@ -50,6 +50,8 @@ Route::middleware(['auth:sanctum', 'check.subscription'])->group(function () {
     Route::put('/listings/{id}',    [ListingController::class, 'update']);
     Route::delete('/listings/{id}', [ListingController::class, 'destroy']);
     Route::get('/host/listings',    [ListingController::class, 'hostListings']);
+    Route::get('/host/bookings', [BookingController::class, 'hostBookings']);
+    Route::patch('/host/bookings/{id}/status', [BookingController::class, 'updateStatus']);
 });
 
 // Admin-only routes

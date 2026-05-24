@@ -114,4 +114,30 @@ class BookingController extends Controller
 
         return response()->json(array_values(array_unique($dates)));
     }
+
+    public function hostBookings(Request $request)
+    {
+        $bookings = Booking::with(['listing', 'user'])
+        ->whereHas('listing', fn($q) => 
+        $q->where('user_id', $request->user()->id)
+        )
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        return response()->json($bookings);
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:confirmed,cancelled',
+        ]);
+        $booking = Booking::whereHas('listing', fn($q) =>
+            $q->where('user_id', $request->user()->id)
+        )->findOrFail($id);
+        
+        $booking->update(['status' => $request->status]);
+
+        return response()->json($booking->load(['listing', 'user']));
+    }
 }

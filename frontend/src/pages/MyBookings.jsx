@@ -112,16 +112,7 @@ export default function MyBookings() {
       
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-10">
         {/* HEADER */}
-        <div
-  className="
-    mb-10
-    bg-white
-    border border-gray-200
-    rounded-2xl
-    p-7
-    shadow-[0_4px_20px_rgba(0,0,0,0.04)]
-  "
->
+
 
   <div className="flex items-center justify-between flex-wrap gap-5">
 
@@ -142,36 +133,6 @@ export default function MyBookings() {
       >
         ← Back
       </button>
-
-      <p className="uppercase tracking-[0.2em] text-xs font-semibold text-blue-500 mb-2">
-        Your stays
-      </p>
-
-      <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">
-        My Bookings
-      </h1>
-
-    </div>
-
-    <div
-  className="
-    min-w-[170px]
-    bg-white
-    border border-gray-200
-    rounded-2xl
-    px-8 py-6
-    text-center
-    shadow-[0_4px_18px_rgba(0,0,0,0.04)]
-  "
->
-      <p className="text-4xl font-black text-gray-900">
-        {bookings.length}
-      </p>
-
-      <span className="text-xs uppercase tracking-wider text-gray-400">
-        Total Bookings
-      </span>
-    </div>
 
   </div>
 
