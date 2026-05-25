@@ -219,7 +219,7 @@ export default function MyBookings() {
                 new Date(b.check_out) < new Date();
 
               const canCancel =
-                b.status !== 'cancelled' && !isPast;
+                b.status === 'pending' && !isPast;
 
               const cfg =
                 STATUS_CONFIG[b.status] || STATUS_CONFIG.pending;

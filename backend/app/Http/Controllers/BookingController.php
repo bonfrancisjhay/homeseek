@@ -88,6 +88,11 @@ class BookingController extends Controller
         if ($booking->status === 'cancelled') {
             return response()->json(['message' => 'Booking is already cancelled.'], 422);
         }
+        if ($booking->status !== 'pending') {
+            return response()->json([
+                'message' => 'Only pending bookings can be cancelled.'
+            ], 422);
+        }
 
         $booking->update(['status' => 'cancelled']);
 
