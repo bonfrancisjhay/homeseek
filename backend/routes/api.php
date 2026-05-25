@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Guest: view own bookings & cancel
     Route::get('/bookings',               [BookingController::class, 'index']);
+    Route::post('/bookings/check-in', [BookingController::class, 'checkIn']);
     Route::patch('/bookings/{id}/cancel', [BookingController::class, 'cancel']);
 
     // Guest: booking payment flow

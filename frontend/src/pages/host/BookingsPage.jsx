@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { CalendarDays, Users, BadgeDollarSign, Clock, CheckCircle, XCircle, ChevronDown } from 'lucide-react';
 import api from '../../services/api';
+import { BrowserQRCodeReader } from '@zxing/browser';
 
 const BASE_URL = (import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
@@ -11,6 +12,11 @@ const STATUS_CONFIG = {
   pending:   { label: 'Pending',   pill: 'bg-amber-50 text-amber-700 border-amber-200',  dot: 'bg-amber-400'  },
   confirmed: { label: 'Confirmed', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-400' },
   cancelled: { label: 'Cancelled', pill: 'bg-gray-100 text-gray-400 border-gray-200',    dot: 'bg-gray-300'   },
+  checked_in: {
+  label: 'Checked In',
+  pill: 'bg-blue-50 text-blue-700 border-blue-200',
+  dot: 'bg-blue-400'
+},
 };
 
 const FILTERS = [
@@ -34,6 +40,30 @@ export default function BookingsPage() {
   const [error,     setError]     = useState('');
   const [search,    setSearch]    = useState('');
   const [expanded,  setExpanded]  = useState(null);
+  const [scanning, setScanning] = useState(false);
+
+
+  const handleCheckIn = async (qrToken) => {
+  try {
+    const res = await api.post('/bookings/check-in', {
+      qr_token: qrToken
+    });
+
+    alert(res.data.message);
+
+    // update UI instantly
+    setBookings(prev =>
+      prev.map(b =>
+        b.qr_token === qrToken
+          ? { ...b, status: 'checked_in', checked_in_at: new Date().toISOString() }
+          : b
+      )
+    );
+
+  } catch (err) {
+    alert(err.response?.data?.message || 'Check-in failed');
+  }
+};
 
   useEffect(() => {
     api.get('/host/bookings')
@@ -74,8 +104,8 @@ export default function BookingsPage() {
   };
 
   const totalRevenue = bookings
-    .filter(b => b.status === 'confirmed')
-    .reduce((sum, b) => sum + Number(b.total_price), 0);
+  .filter(b => b.status === 'confirmed' || b.status === 'checked_in')
+  .reduce((sum, b) => sum + Number(b.total_price), 0);
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -85,6 +115,33 @@ export default function BookingsPage() {
       </div>
     </div>
   );
+
+  const QRScanner = ({ onScan, onClose }) => {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const codeReader = new BrowserQRCodeReader();
+    codeReader.decodeFromVideoDevice(null, videoRef.current, (result, err) => {
+      if (result) {
+        onScan(result.getText());
+        codeReader.reset();
+      }
+    });
+    return () => codeReader.reset();
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-2xl p-5 w-80 shadow-xl">
+        <p className="text-sm font-semibold text-gray-700 mb-3 text-center">Scan Guest QR Code</p>
+        <video ref={videoRef} className="w-full rounded-xl" />
+        <button onClick={onClose} className="mt-4 w-full py-2 rounded-xl border border-red-200 text-red-500 text-sm hover:bg-red-50 transition">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+};
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 space-y-5 font-sans">
@@ -283,47 +340,53 @@ export default function BookingsPage() {
                   </span>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {isPending && (
-                      <>
-                        <button
-                          disabled={!!updating}
-                          onClick={() => handleStatus(b.id, 'confirmed')}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          {updating === b.id + 'confirmed'
-                            ? <div className="w-3 h-3 border border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                            : <CheckCircle size={12} strokeWidth={2} />
-                          }
-                          Confirm
-                        </button>
-                        <button
-                          disabled={!!updating}
-                          onClick={() => handleStatus(b.id, 'cancelled')}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          {updating === b.id + 'cancelled'
-                            ? <div className="w-3 h-3 border border-red-500 border-t-transparent rounded-full animate-spin" />
-                            : <XCircle size={12} strokeWidth={2} />
-                          }
-                          Reject
-                        </button>
-                      </>
-                    )}
+<div className="flex items-center gap-2 flex-shrink-0">
 
-                    {/* Expand */}
-                    <button
-                      onClick={() => setExpanded(isExpanded ? null : b.id)}
-                      className="text-gray-300 hover:text-blue-400 transition p-1.5 rounded-lg hover:bg-blue-50"
-                    >
-                      <ChevronDown
-                        size={15}
-                        strokeWidth={2}
-                        className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                  </div>
-                </div>
+  {/* Pending actions */}
+  {b.status === 'pending' && (
+    <>
+      <button
+        disabled={!!updating}
+        onClick={() => handleStatus(b.id, 'confirmed')}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Confirm
+      </button>
+
+      <button
+        disabled={!!updating}
+        onClick={() => handleStatus(b.id, 'cancelled')}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Reject
+      </button>
+    </>
+  )}
+
+  {/* Check-in button (ONLY confirmed) */}
+  {b.status === 'confirmed' && (
+  <button
+    onClick={() => setScanning(true)}
+    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 transition"
+  >
+    Scan QR
+  </button>
+)}
+
+  {/* Expand */}
+  <button
+    onClick={() => setExpanded(isExpanded ? null : b.id)}
+    className="text-gray-300 hover:text-blue-400 transition p-1.5 rounded-lg hover:bg-blue-50"
+  >
+    <ChevronDown
+      size={15}
+      strokeWidth={2}
+      className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+    />
+  </button>
+
+</div>
+</div>
 
                 {/* ── EXPANDED DETAIL PANEL ── */}
                 {isExpanded && (
@@ -354,6 +417,15 @@ export default function BookingsPage() {
           })}
         </div>
       )}
+      {scanning && (
+  <QRScanner
+    onScan={(token) => {
+      setScanning(false);
+      handleCheckIn(token);
+    }}
+    onClose={() => setScanning(false)}
+  />
+)}
     </div>
   );
 }

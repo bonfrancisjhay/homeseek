@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import QRCode from "react-qr-code";
+
 
 const BASE_URL = (import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
@@ -20,6 +22,11 @@ const STATUS_CONFIG = {
     badge: 'bg-gray-100 text-gray-500 border border-gray-200',
     dot: 'bg-gray-400',
   },
+  checked_in: {
+  label: 'Checked In',
+  badge: 'bg-blue-100 text-blue-700 border border-blue-200',
+  dot: 'bg-blue-500',
+},
 };
 
 export default function MyBookings() {
@@ -83,6 +90,7 @@ export default function MyBookings() {
     pending: bookings.filter(b => b.status === 'pending').length,
     confirmed: bookings.filter(b => b.status === 'confirmed').length,
     cancelled: bookings.filter(b => b.status === 'cancelled').length,
+    checked_in: bookings.filter(b => b.status === 'checked_in').length,
   };
 
   const formatDate = (d) => {
@@ -145,6 +153,7 @@ export default function MyBookings() {
             { key: 'confirmed', label: 'Confirmed' },
             { key: 'pending', label: 'Pending' },
             { key: 'cancelled', label: 'Cancelled' },
+            { key: 'checked_in', label: 'Checked In' },
           ].map(f => (
             <button
               key={f.key}
@@ -334,6 +343,19 @@ export default function MyBookings() {
           ₱{Number(b.total_price).toLocaleString()}
         </h3>
       </div>
+
+      {/* QR CODE - only show for confirmed bookings */}
+{b.status === 'confirmed' && b.qr_token && (
+  <div className="mb-4 flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
+    <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">
+      Check-in QR Code
+    </p>
+    <QRCode value={b.qr_token} size={110} />
+    <p className="text-xs text-gray-400 mt-3 text-center">
+      Show this to your host upon arrival
+    </p>
+  </div>
+)}
 
       {/* BUTTONS */}
       <div className="flex flex-col gap-2">

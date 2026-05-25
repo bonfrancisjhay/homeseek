@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Listing;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
@@ -70,6 +71,8 @@ class BookingController extends Controller
             'guests'      => $request->guests,
             'total_price' => $total,
             'status'      => 'pending',
+            'qr_token'    => (string) Str::uuid(),
+            'checkin_code'=> random_int(100000, 999999),
         ]);
 
         return response()->json($booking->load('listing'), 201);
@@ -140,4 +143,42 @@ class BookingController extends Controller
 
         return response()->json($booking->load(['listing', 'user']));
     }
+    public function checkIn(Request $request)
+{
+    $request->validate([
+        'qr_token' => 'required'
+    ]);
+
+    $booking = Booking::where('qr_token', $request->qr_token)
+        ->with('listing', 'user')
+        ->first();
+
+    if (!$booking) {
+        return response()->json([
+            'message' => 'Invalid QR code'
+        ], 404);
+    }
+
+    if ($booking->status !== 'confirmed') {
+        return response()->json([
+            'message' => 'Booking is not confirmed yet'
+        ], 422);
+    }
+
+    if ($booking->checked_in_at) {
+        return response()->json([
+            'message' => 'Guest already checked in'
+        ], 422);
+    }
+
+    $booking->update([
+        'checked_in_at' => now(),
+        'status' => 'checked_in'
+    ]);
+
+    return response()->json([
+        'message' => 'Check-in successful',
+        'booking' => $booking
+    ]);
+}
 }

@@ -16,6 +16,9 @@ class Booking extends Model
         'paymongo_payment_id',
         'total_price',
         'status',
+        'qr_token',
+        'checkin_code',
+        'checked_in_at',
     ];
 
     protected $casts = [
