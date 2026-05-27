@@ -48,4 +48,5 @@ class Listing extends Model
     {
         return $this->hasMany(Booking::class);
     }
+    
 }

@@ -9,14 +9,36 @@ use Illuminate\Support\Facades\Storage;
 class ListingController extends Controller
 {
     // Get all listings
-    public function index()
-    {
-        $listings = Listing::with(['user', 'reviews'])
-            ->latest()
-            ->get();
+    public function index(Request $request)
+{
+    $query = Listing::with(['user', 'reviews'])->latest();
 
-        return response()->json($listings);
+    // Filter by location
+    if ($request->filled('location')) {
+    $location = trim(explode(',', $request->location)[0]);
+    
+    $query->where('location', 'like', '%' . $location . '%');
+}
+
+    // Filter by guests
+    if ($request->filled('guests') && $request->guests > 0) {
+        $query->where('max_guests', '>=', $request->guests);
     }
+
+    // Filter by date availability
+    if ($request->filled('check_in') && $request->filled('check_out')) {
+
+        $query->whereDoesntHave('bookings', function ($q) use ($request) {
+
+            $q->whereIn('status', ['pending', 'confirmed', 'checked_in'])
+            ->where('check_in', '<', $request->check_out)
+            ->where('check_out', '>', $request->check_in);
+
+        });
+    }
+
+    return response()->json($query->get());
+}
 
     // Get single listing
     public function show($id)

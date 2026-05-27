@@ -13,17 +13,24 @@ function Listings({ searchFilter }) {
     const token = localStorage.getItem('token');
 
     useEffect(() => {
-        api.get('/listings')
-            .then(res => {
-                const filtered = searchFilter
-                    ? res.data.filter(l =>
-                        l.location.toLowerCase().includes(searchFilter.toLowerCase()))
-                    : res.data;
-                setListings(filtered);
-            })
-            .catch(err => console.error(err))
-            .finally(() => setLoading(false));
-    }, [searchFilter]);
+    setLoading(true);
+
+    const params = {};
+
+    if (searchFilter?.location)  params.location  = searchFilter.location;
+    if (searchFilter?.guests > 0) params.guests   = searchFilter.guests;
+    if (searchFilter?.startDate) params.check_in  = searchFilter.startDate.toLocaleDateString('en-CA');
+    if (searchFilter?.endDate)   params.check_out = searchFilter.endDate.toLocaleDateString('en-CA');
+
+    console.log('Search params:', params);
+
+
+    api.get('/listings', { params })
+        .then(res => setListings(res.data))
+        .catch(err => console.error(err))
+        .finally(() => setLoading(false));
+
+}, [searchFilter]);
 
     const handleCardClick = (id) => {
         if (!token) {

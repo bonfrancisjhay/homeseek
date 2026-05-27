@@ -27,7 +27,7 @@ const AdminRoute = ({ children }) => {
 };
 
 function App() {
-  const [searchFilter, setSearchFilter]       = useState('');
+  const [searchFilter, setSearchFilter] = useState({});
   const [showSubModal, setShowSubModal]       = useState(false); 
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user'));
@@ -61,7 +61,7 @@ function App() {
   return (
     
     <BrowserRouter>
-      <Navbar onSearch={(params) => setSearchFilter(params.location)} />
+      <Navbar onSearch={(params) => setSearchFilter(params)} />
       <TrialBanner />
       {showSubModal && <SubscriptionModal />}
       <Routes>
