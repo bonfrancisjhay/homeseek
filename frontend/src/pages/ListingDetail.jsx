@@ -25,6 +25,7 @@ const HIGHLIGHTS = [
   { icon: '🔑', title: 'Self check-in',  sub: 'Check yourself in with the smart lock.'   },
 ];
 
+
 // ── Multi-step booking card steps ──
 // 0 = dates/guests form
 // 1 = upload valid ID
@@ -47,6 +48,8 @@ export default function ListingDetail() {
   const [paying,       setPaying]       = useState(false);
   const [error,        setError]        = useState('');
   const [saved,        setSaved]        = useState(false);
+  const [reviews, setReviews] = useState([]);
+
 
   const token = localStorage.getItem('token');
   const today = new Date().toISOString().split('T')[0];
@@ -63,6 +66,11 @@ export default function ListingDetail() {
       .then(res => setBookedDates(res.data))
       .catch(console.error);
   }, [id]);
+  useEffect(() => {
+  api.get(`/listings/${id}/reviews`)
+    .then(res => setReviews(res.data))
+    .catch(console.error);
+}, [id]);
 
   // ── helpers ──
   const rangeHasBlockedDates = (ci, co) => {
@@ -202,9 +210,15 @@ export default function ListingDetail() {
 
         {/* Meta */}
         <div className="flex items-center gap-2 text-sm text-gray-700 mb-5 flex-wrap">
-          <span className="font-semibold">★ 4.92</span>
-          <span className="text-gray-300">·</span>
-          <span className="underline cursor-pointer font-medium">28 reviews</span>
+          <span className="font-semibold">
+          ★ {reviews.length > 0
+            ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2)
+            : '—'}
+        </span>
+        <span className="text-gray-300">·</span>
+        <span className="underline cursor-pointer font-medium">
+          {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+        </span>
           <span className="text-gray-300">·</span>
           <span className="underline cursor-pointer font-medium">📍 {listing.location}</span>
         </div>
@@ -299,9 +313,17 @@ export default function ListingDetail() {
                   <span className="text-blue-200 text-sm">/ night</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-sm">
-                  <span className="font-semibold text-white">★ 4.92</span>
-                  <span className="text-blue-300">·</span>
-                  <span className="text-blue-100">28 reviews</span>
+                  <span className="font-semibold text-white">
+                    ★ {reviews.length > 0
+                      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2)
+                      : 'No reviews'}
+                  </span>
+                  {reviews.length > 0 && (
+                    <>
+                      <span className="text-blue-300">·</span>
+                      <span className="text-blue-100">{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -513,38 +535,38 @@ export default function ListingDetail() {
 
         {/* Reviews */}
         <div className="mt-10 pt-8 border-t border-gray-200">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">★ 4.92 · 28 reviews</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-            {[['Cleanliness',5.0],['Accuracy',4.9],['Communication',4.8],['Location',5.0],['Check-in',5.0],['Value',4.7]].map(([cat, score]) => (
-              <div key={cat} className="flex items-center justify-between gap-3">
-                <span className="text-sm text-gray-700 whitespace-nowrap">{cat}</span>
-                <div className="flex items-center gap-2 flex-1">
-                  <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-gray-900 rounded-full" style={{ width: `${score * 20}%` }} />
-                  </div>
-                  <span className="text-sm font-medium text-gray-900 w-6">{score.toFixed(1)}</span>
-                </div>
-              </div>
-            ))}
+  <h3 className="text-xl font-semibold text-gray-900 mb-6">
+    ★ {reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2)
+      : '—'} · {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+  </h3>
+
+  {reviews.length === 0 ? (
+    <p className="text-sm text-gray-400">No reviews yet.</p>
+  ) : (
+    <div className="grid md:grid-cols-2 gap-8">
+      {reviews.map(r => (
+        <div key={r.id} className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-semibold text-sm flex-shrink-0">
+              {r.user?.name?.[0]?.toUpperCase() || 'G'}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">{r.user?.name || 'Guest'}</p>
+              <p className="text-xs text-gray-400">
+                {new Date(r.created_at).toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+            <div className="ml-auto text-sm font-bold text-amber-500">
+              {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+            </div>
           </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            {[
-              { name: 'Maria S.', date: 'April 2025', text: 'Absolutely stunning property! The location was perfect and the host was so welcoming. Would definitely come back.' },
-              { name: 'James L.', date: 'March 2025', text: 'Everything was exactly as described. Clean, beautiful views, and very comfortable. Highly recommend!' },
-            ].map(r => (
-              <div key={r.name} className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-semibold text-sm flex-shrink-0">{r.name[0]}</div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{r.name}</p>
-                    <p className="text-xs text-gray-400">{r.date}</p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed">{r.text}</p>
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">{r.comment}</p>
         </div>
+      ))}
+    </div>
+  )}
+</div>
 
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'; 
+import { useState, useEffect } from 'react';
 
 function ListingCard({ listing, onClick, index }) {
     const [liked, setLiked] = useState(false);
@@ -6,9 +6,8 @@ function ListingCard({ listing, onClick, index }) {
 
     useEffect(() => {
         setImgError(false);
-    }, [listing.id]); 
+    }, [listing.id]);
 
-    // Placeholder images for listings without photos
     const placeholders = [
         'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500',
         'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=500',
@@ -20,163 +19,67 @@ function ListingCard({ listing, onClick, index }) {
 
     const BASE_URL = (import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
-
     const firstImage = listing.images?.[0];
 
     const getImageSrc = () => {
-        if (imgError || !firstImage) {
-            return placeholders[index % placeholders.length];
-        }
-
-        if (firstImage.startsWith('http')) {
-            return firstImage;
-        }
-
+        if (imgError || !firstImage) return placeholders[index % placeholders.length];
+        if (firstImage.startsWith('http')) return firstImage;
         return `${BASE_URL}${firstImage}`;
     };
 
-    const imgSrc = getImageSrc();
-
+    // Real average rating from reviews
+    const avgRating = listing.reviews?.length > 0
+        ? (listing.reviews.reduce((sum, r) => sum + r.rating, 0) / listing.reviews.length).toFixed(2)
+        : null;
 
     return (
-        <div style={styles.card} onClick={onClick}>
+        <div className="cursor-pointer rounded-2xl overflow-hidden bg-white transition-transform duration-200 hover:-translate-y-1" onClick={onClick}>
+
             {/* Image */}
-            <div style={styles.imgWrapper}>
+            <div className="relative w-full pb-[66%] overflow-hidden rounded-2xl bg-gray-100">
                 <img
-                    src={imgSrc}
+                    src={getImageSrc()}
                     alt={listing.title}
-                    style={styles.img}
-                    onError={(e) => {
-                    if (!imgError) {
-                        setImgError(true);
-                    }
-                }}
+                    className="absolute top-0 left-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    onError={() => { if (!imgError) setImgError(true); }}
                 />
+
                 {/* Like button */}
                 <button
-                    style={styles.likeBtn}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setLiked(!liked);
-                    }}
+                    className="absolute top-3 right-3 bg-none border-none text-[22px] cursor-pointer z-10 drop-shadow-md"
+                    onClick={e => { e.stopPropagation(); setLiked(!liked); }}
                 >
                     {liked ? '❤️' : '🤍'}
                 </button>
+
                 {/* Guest favorite badge */}
                 {index % 3 === 0 && (
-                    <div style={styles.badge}>Guest favorite</div>
+                    <div className="absolute top-3 left-3 bg-white text-gray-800 text-[11px] font-semibold px-3 py-1 rounded-full shadow-md">
+                        Guest favorite
+                    </div>
                 )}
             </div>
 
             {/* Info */}
-            <div style={styles.info}>
-                <div style={styles.row}>
-                    <h3 style={styles.title}>{listing.title}</h3>
-                    <div style={styles.rating}>
-                        ★ {(4.5 + Math.random() * 0.5).toFixed(2)}
+            <div className="pt-3 px-1 pb-1">
+                <div className="flex justify-between items-start mb-1">
+                    <h3 className="text-sm font-semibold text-gray-800 flex-1 mr-2 leading-snug line-clamp-1">
+                        {listing.title}
+                    </h3>
+                    <div className="text-[13px] text-gray-800 font-medium flex-shrink-0">
+                        {avgRating ? `★ ${avgRating}` : '★ New'}
                     </div>
                 </div>
-                <p style={styles.location}>{listing.location}</p>
-                <p style={styles.guests}>Up to {listing.max_guests} guests</p>
-                <p style={styles.price}>
-                    <span style={styles.priceNum}>
-                        ₱{Number(listing.price_per_night).toLocaleString()}
-                    </span>
-                    {' '}for 1 night
+
+                <p className="text-[13px] text-gray-500 mb-0.5">{listing.location}</p>
+                <p className="text-[13px] text-gray-500 mb-1.5">Up to {listing.max_guests} guests</p>
+                <p className="text-[13px] text-gray-800 mt-1">
+                    <span className="font-semibold">₱{Number(listing.price_per_night).toLocaleString()}</span>
+                    {' '}/ night
                 </p>
             </div>
         </div>
     );
 }
-
-const styles = {
-    card: {
-        cursor: 'pointer',
-        borderRadius: '16px',
-        overflow: 'hidden',
-        transition: 'transform 0.2s',
-        background: '#fff'
-    },
-    imgWrapper: {
-        position: 'relative',
-        width: '100%',
-        paddingBottom: '66%',
-        overflow: 'hidden',
-        borderRadius: '16px',
-        background: '#f0f0f0'
-    },
-    img: {
-        position: 'absolute',
-        top: 0, left: 0,
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        transition: 'transform 0.3s',
-    },
-    likeBtn: {
-        position: 'absolute',
-        top: '12px',
-        right: '12px',
-        background: 'none',
-        border: 'none',
-        fontSize: '22px',
-        cursor: 'pointer',
-        filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
-        zIndex: 1
-    },
-    badge: {
-        position: 'absolute',
-        top: '12px',
-        left: '12px',
-        background: '#fff',
-        color: '#222',
-        fontSize: '11px',
-        fontWeight: '600',
-        padding: '5px 10px',
-        borderRadius: '20px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-    },
-    info: {
-        padding: '12px 4px 0'
-    },
-    row: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: '4px'
-    },
-    title: {
-        fontSize: '14px',
-        fontWeight: '600',
-        color: '#222',
-        flex: 1,
-        marginRight: '8px',
-        lineHeight: '1.3'
-    },
-    rating: {
-        fontSize: '13px',
-        color: '#222',
-        fontWeight: '500',
-        flexShrink: 0
-    },
-    location: {
-        fontSize: '13px',
-        color: '#717171',
-        marginBottom: '2px'
-    },
-    guests: {
-        fontSize: '13px',
-        color: '#717171',
-        marginBottom: '6px'
-    },
-    price: {
-        fontSize: '13px',
-        color: '#222',
-        marginTop: '4px'
-    },
-    priceNum: {
-        fontWeight: '600'
-    }
-};
 
 export default ListingCard;

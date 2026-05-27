@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import ListingCard from '../components/ListingCard';
 import AuthModal from '../components/AuthModal';
-import 'react-datepicker/dist/react-datepicker.css';
-
 
 function Listings({ searchFilter }) {
     const [listings, setListings] = useState([]);
@@ -42,7 +40,7 @@ function Listings({ searchFilter }) {
     };
 
     return (
-        <div style={styles.page}>
+        <div className="bg-white min-h-screen">
             {showModal && (
                 <AuthModal
                     onClose={() => setShowModal(false)}
@@ -50,22 +48,23 @@ function Listings({ searchFilter }) {
                 />
             )}
 
-            {/* Listings Grid */}
-            <div style={styles.container}>
+            <div className="max-w-[1400px] mx-auto px-6 py-8">
                 {loading ? (
-                    <div style={styles.loadingGrid}>
+                    // Skeleton
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
                         {[1,2,3,4,5,6].map(i => (
-                            <div key={i} style={styles.skeleton} />
+                            <div key={i} className="h-[320px] rounded-2xl bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-pulse" />
                         ))}
                     </div>
                 ) : listings.length === 0 ? (
-                    <div style={styles.empty}>
-                        <p style={styles.emptyIcon}>🏠</p>
-                        <p style={styles.emptyText}>No listings found</p>
-                        <p style={styles.emptySub}>Try searching a different location</p>
+                    // Empty state
+                    <div className="text-center py-20">
+                        <p className="text-5xl mb-4">🏠</p>
+                        <p className="text-xl font-semibold text-gray-800 mb-2">No listings found</p>
+                        <p className="text-sm text-gray-400">Try searching a different location</p>
                     </div>
                 ) : (
-                    <div style={styles.grid}>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
                         {listings.map((listing, i) => (
                             <ListingCard
                                 key={listing.id}
@@ -80,37 +79,5 @@ function Listings({ searchFilter }) {
         </div>
     );
 }
-
-const styles = {
-    page: { background: '#fff', minHeight: '100vh' },
-    container: {
-        maxWidth: '1400px',
-        margin: '0 auto',
-        padding: '32px 24px'
-    },
-    grid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-        gap: '24px'
-    },
-    loadingGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-        gap: '24px'
-    },
-    skeleton: {
-        height: '320px',
-        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-        borderRadius: '16px',
-        animation: 'pulse 1.5s infinite'
-    },
-    empty: {
-        textAlign: 'center',
-        padding: '80px 24px'
-    },
-    emptyIcon: { fontSize: '48px', marginBottom: '16px' },
-    emptyText: { fontSize: '22px', fontWeight: '600', color: '#222', marginBottom: '8px' },
-    emptySub: { fontSize: '15px', color: '#888' }
-};
 
 export default Listings;

@@ -11,13 +11,14 @@ class BookingController extends Controller
 {
     // Get all bookings of logged in user
     public function index(Request $request)
-    {
-        $bookings = Booking::with('listing')
-            ->where('user_id', $request->user()->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-        return response()->json($bookings);
-    }
+{
+    $bookings = Booking::with(['listing', 'review'])
+        ->where('user_id', $request->user()->id)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return response()->json($bookings);
+}
 
     // Create a booking
     public function store(Request $request)
@@ -124,16 +125,27 @@ class BookingController extends Controller
     }
 
     public function hostBookings(Request $request)
-    {
-        $bookings = Booking::with(['listing', 'user'])
-        ->whereHas('listing', fn($q) => 
+{
+    // Auto checkout — runs every time host loads bookings page
+    Booking::whereHas('listing', fn($q) =>
         $q->where('user_id', $request->user()->id)
+    )
+    ->where('status', 'checked_in')
+    ->whereDate('check_out', '<', today())
+    ->update([
+        'status'         => 'checked_out',
+        'checked_out_at' => now(),
+    ]);
+
+    $bookings = Booking::with(['listing', 'user'])
+        ->whereHas('listing', fn($q) =>
+            $q->where('user_id', $request->user()->id)
         )
         ->orderBy('created_at', 'desc')
         ->get();
 
-        return response()->json($bookings);
-    }
+    return response()->json($bookings);
+}
 
     public function updateStatus(Request $request, $id)
     {
@@ -164,6 +176,13 @@ class BookingController extends Controller
         ], 404);
     }
 
+    // Check if today is the actual check-in date
+    if (today()->toDateString() !== $booking->check_in) {
+        return response()->json([
+            'message' => 'Check-in is only allowed on ' . \Carbon\Carbon::parse($booking->check_in)->format('M d, Y')
+        ], 403);
+    }
+
     if ($booking->status !== 'confirmed') {
         return response()->json([
             'message' => 'Booking is not confirmed yet'
@@ -185,5 +204,33 @@ class BookingController extends Controller
         'message' => 'Check-in successful',
         'booking' => $booking
     ]);
+}
+
+    public function review(Request $request, $id)
+{
+    $request->validate([
+        'rating'  => 'required|integer|min:1|max:5',
+        'comment' => 'nullable|string|max:1000',
+    ]);
+
+    $booking = Booking::where('id', $id)
+        ->where('user_id', $request->user()->id)
+        ->where('status', 'checked_out')
+        ->firstOrFail();
+
+    // Prevent duplicate reviews
+    if ($booking->review) {
+        return response()->json(['message' => 'You have already reviewed this booking.'], 422);
+    }
+
+    $review = \App\Models\Review::create([
+        'booking_id' => $booking->id,
+        'user_id'    => $request->user()->id,
+        'listing_id' => $booking->listing_id,
+        'rating'     => $request->rating,
+        'comment'    => $request->comment,
+    ]);
+
+    return response()->json($review, 201);
 }
 }

@@ -37,4 +37,8 @@ class Booking extends Model
     {
         return $this->belongsTo(Listing::class);
     }
+    public function review()
+    {
+        return $this->hasOne(\App\Models\Review::class);
+    }
 }

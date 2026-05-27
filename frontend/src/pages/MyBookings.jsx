@@ -26,7 +26,12 @@ const STATUS_CONFIG = {
   label: 'Checked In',
   badge: 'bg-blue-100 text-blue-700 border border-blue-200',
   dot: 'bg-blue-500',
-},
+  },
+  checked_out: {
+    label: 'Checked Out',
+    badge: 'bg-purple-100 text-purple-700 border border-purple-200',
+    dot: 'bg-purple-500',
+  },
 };
 
 export default function MyBookings() {
@@ -37,14 +42,45 @@ export default function MyBookings() {
   const [cancelling, setCancelling] = useState(null);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
+  const [reviewModal, setReviewModal] = useState(null); // holds booking object
+  const [reviewForm, setReviewForm]   = useState({ rating: 5, comment: '' });
+  const [submitting, setSubmitting]   = useState(false);
+  const [reviewedIds, setReviewedIds] = useState([]); // booking ids already reviewed
 
   const token = localStorage.getItem('token');
+
+
+  const handleReviewSubmit = async () => {
+  setSubmitting(true);
+  try {
+    await api.post(`/bookings/${reviewModal.id}/review`, reviewForm);
+    setReviewedIds(prev => [...prev, reviewModal.id]);
+    setReviewModal(null);
+    setReviewForm({ rating: 5, comment: '' });
+  } catch (err) {
+    alert(err.response?.data?.message || 'Failed to submit review.');
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   useEffect(() => {
     if (!token) {
       navigate('/login');
       return;
     }
+
+    api.get('/bookings')
+  .then(res => {
+    setBookings(res.data);
+    // pre-populate already reviewed booking ids
+    const alreadyReviewed = res.data
+      .filter(b => b.review !== null)
+      .map(b => b.id);
+    setReviewedIds(alreadyReviewed);
+  })
+  .catch(() => setError('Failed to load bookings.'))
+  .finally(() => setLoading(false));
 
     api.get('/bookings')
       .then(res => setBookings(res.data))
@@ -91,6 +127,8 @@ export default function MyBookings() {
     confirmed: bookings.filter(b => b.status === 'confirmed').length,
     cancelled: bookings.filter(b => b.status === 'cancelled').length,
     checked_in: bookings.filter(b => b.status === 'checked_in').length,
+    checked_out: bookings.filter(b => b.status === 'checked_out').length,
+
   };
 
   const formatDate = (d) => {
@@ -154,6 +192,7 @@ export default function MyBookings() {
             { key: 'pending', label: 'Pending' },
             { key: 'cancelled', label: 'Cancelled' },
             { key: 'checked_in', label: 'Checked In' },
+            { key: 'checked_out', label: 'Checked Out' },
           ].map(f => (
             <button
               key={f.key}
@@ -391,6 +430,21 @@ export default function MyBookings() {
           </button>
         )}
 
+        {b.status === 'checked_out' && !reviewedIds.includes(b.id) && !b.review && (
+  <button
+    onClick={() => { setReviewModal(b); setReviewForm({ rating: 5, comment: '' }); }}
+    className="w-full py-3 rounded-xl border border-blue-200 text-blue-600 hover:bg-blue-50 text-sm font-semibold transition"
+  >
+    ⭐ Leave a Review
+  </button>
+)}
+
+{(reviewedIds.includes(b.id) || b.review) && (
+  <div className="w-full py-2 text-center text-xs text-gray-400 font-medium">
+    ✓ Review submitted
+  </div>
+)}
+
       </div>
 
     </div>
@@ -402,6 +456,68 @@ export default function MyBookings() {
             })}
           </div>
         )}
+
+        {reviewModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+
+      <h2 className="text-lg font-bold text-gray-900 mb-1">Leave a Review</h2>
+      <p className="text-sm text-gray-400 mb-5 line-clamp-1">
+        {reviewModal.listing?.title}
+      </p>
+
+      {/* Star rating */}
+      <div className="mb-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">Rating</p>
+        <div className="flex gap-2">
+          {[1,2,3,4,5].map(star => (
+            <button
+              key={star}
+              onClick={() => setReviewForm(prev => ({ ...prev, rating: star }))}
+              className={`text-3xl transition-transform hover:scale-110 
+                ${star <= reviewForm.rating ? 'opacity-100' : 'opacity-25'}`}
+            >
+              ⭐
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Comment */}
+      <div className="mb-5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">Comment</p>
+        <textarea
+          rows={4}
+          value={reviewForm.comment}
+          onChange={e => setReviewForm(prev => ({ ...prev, comment: e.target.value }))}
+          placeholder="Share your experience..."
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-blue-400 resize-none transition"
+        />
+      </div>
+
+      {/* Buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setReviewModal(null)}
+          className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleReviewSubmit}
+          disabled={submitting}
+          className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {submitting
+            ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</>
+            : 'Submit Review'
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
 
       </div>
     </div>

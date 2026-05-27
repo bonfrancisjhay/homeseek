@@ -16,13 +16,20 @@ const STATUS_CONFIG = {
   label: 'Checked In',
   pill: 'bg-blue-50 text-blue-700 border-blue-200',
   dot: 'bg-blue-400'
-},
+  },
+  checked_out: {
+      label: 'Checked Out',
+      pill: 'bg-purple-50 text-purple-700 border-purple-200',
+      dot: 'bg-purple-400'
+  },
 };
 
 const FILTERS = [
   { key: 'all',       label: 'All'       },
   { key: 'pending',   label: 'Pending'   },
   { key: 'confirmed', label: 'Confirmed' },
+  { key: 'checked_in', label: 'Checked In' },
+  { key: 'checked_out', label: 'Checked Out' },
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
@@ -31,6 +38,43 @@ const formatDate = (d) =>
 
 const nights = (a, b) =>
   Math.max(0, Math.ceil((new Date(b) - new Date(a)) / 86400000));
+
+function QRScanner({ onScan, onClose }) {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    let codeReader;
+    const start = async () => {
+      codeReader = new BrowserQRCodeReader();
+      try {
+        await codeReader.decodeFromVideoDevice(null, videoRef.current, (result) => {
+          if (result) {
+            onScan(result.getText());
+            codeReader.reset();
+          }
+        });
+      } catch (e) {
+        alert('Camera access denied or unavailable.');
+        onClose();
+      }
+    };
+    start();
+    return () => { if (codeReader) codeReader.reset(); };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-2xl p-5 w-80 shadow-xl">
+        <p className="text-sm font-semibold text-gray-700 mb-3 text-center">Scan Guest QR Code</p>
+        <video ref={videoRef} className="w-full rounded-xl" />
+        <p className="text-xs text-gray-400 text-center mt-2">Point camera at guest's QR code</p>
+        <button onClick={onClose} className="mt-4 w-full py-2 rounded-xl border border-red-200 text-red-500 text-sm hover:bg-red-50 transition">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function BookingsPage() {
   const [bookings,  setBookings]  = useState([]);
@@ -100,6 +144,8 @@ export default function BookingsPage() {
     all:       bookings.length,
     pending:   bookings.filter(b => b.status === 'pending').length,
     confirmed: bookings.filter(b => b.status === 'confirmed').length,
+    checked_in: bookings.filter(b => b.status === 'checked_in').length,
+    checked_out: bookings.filter(b => b.status === 'checked_out').length,
     cancelled: bookings.filter(b => b.status === 'cancelled').length,
   };
 
@@ -115,33 +161,6 @@ export default function BookingsPage() {
       </div>
     </div>
   );
-
-  const QRScanner = ({ onScan, onClose }) => {
-  const videoRef = useRef(null);
-
-  useEffect(() => {
-    const codeReader = new BrowserQRCodeReader();
-    codeReader.decodeFromVideoDevice(null, videoRef.current, (result, err) => {
-      if (result) {
-        onScan(result.getText());
-        codeReader.reset();
-      }
-    });
-    return () => codeReader.reset();
-  }, []);
-
-  return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl p-5 w-80 shadow-xl">
-        <p className="text-sm font-semibold text-gray-700 mb-3 text-center">Scan Guest QR Code</p>
-        <video ref={videoRef} className="w-full rounded-xl" />
-        <button onClick={onClose} className="mt-4 w-full py-2 rounded-xl border border-red-200 text-red-500 text-sm hover:bg-red-50 transition">
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-};
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 space-y-5 font-sans">
@@ -366,7 +385,7 @@ export default function BookingsPage() {
   {/* Check-in button (ONLY confirmed) */}
   {b.status === 'confirmed' && (
   <button
-    onClick={() => setScanning(true)}
+    onClick={() => setScanning(b.qr_token)}
     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 transition"
   >
     Scan QR

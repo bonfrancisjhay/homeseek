@@ -9,12 +9,17 @@ use App\Http\Controllers\BookingPaymentController;
 use App\Http\Controllers\Subscription\PayMongoController;
 use App\Http\Controllers\Subscription\TrialController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ReviewController;
+
 
 // ── PUBLIC ROUTES ──────────────────────────────────────
 Route::post('/register',     [AuthController::class, 'register']);
 Route::post('/login',        [AuthController::class, 'login']);
 Route::get('/listings',      [ListingController::class, 'index']);
 Route::get('/listings/{id}', [ListingController::class, 'show']);
+
+// Reviews (public viewing)
+Route::get('/listings/{id}/reviews', [ReviewController::class, 'index']);
 
 // Public: booked dates for a listing (guests see unavailable dates)
 Route::get('/listings/{id}/booked-dates', [BookingController::class, 'bookedDates']);
@@ -30,6 +35,9 @@ Route::post('/webhook/paymongo-booking', [BookingPaymentController::class,  'web
 // ── PROTECTED ROUTES (logged in only) ──────────────────
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Review after booking
+    Route::post('/bookings/{id}/review', [ReviewController::class, 'store']);
 
     // Guest: view own bookings & cancel
     Route::get('/bookings',               [BookingController::class, 'index']);

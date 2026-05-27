@@ -11,7 +11,10 @@ class ListingController extends Controller
     // Get all listings
     public function index()
     {
-        $listings = Listing::with('user')->get();
+        $listings = Listing::with(['user', 'reviews'])
+            ->latest()
+            ->get();
+
         return response()->json($listings);
     }
 
