@@ -7,6 +7,12 @@ import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon   from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import {
+  Wifi, Wind, UtensilsCrossed, ParkingCircle, Waves, Dumbbell,
+  Tv, WashingMachine, Shirt, PawPrint, MapPin, Medal, KeyRound,
+  Star, Users, Heart, Lock, CreditCard, ChevronLeft, AlertCircle,
+  IdCard, CheckCircle, Upload, Home, Check
+} from 'lucide-react';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
@@ -14,15 +20,22 @@ L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, 
 const BASE_URL = (import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
 const AMENITY_ICONS = {
-  'WiFi': '📶', 'Air Conditioning': '❄️', 'Kitchen': '🍳',
-  'Parking': '🅿️', 'Pool': '🏊', 'Gym': '🏋️',
-  'TV': '📺', 'Washer': '🫧', 'Dryer': '🌀', 'Pet Friendly': '🐾',
+  'WiFi':            <Wifi className="w-5 h-5" />,
+  'Air Conditioning':<Wind className="w-5 h-5" />,
+  'Kitchen':         <UtensilsCrossed className="w-5 h-5" />,
+  'Parking':         <ParkingCircle className="w-5 h-5" />,
+  'Pool':            <Waves className="w-5 h-5" />,
+  'Gym':             <Dumbbell className="w-5 h-5" />,
+  'TV':              <Tv className="w-5 h-5" />,
+  'Washer':          <WashingMachine className="w-5 h-5" />,
+  'Dryer':           <Shirt className="w-5 h-5" />,
+  'Pet Friendly':    <PawPrint className="w-5 h-5" />,
 };
 
 const HIGHLIGHTS = [
-  { icon: '🏅', title: 'Superhost',      sub: 'Highly-rated and experienced host.'       },
-  { icon: '📍', title: 'Great location', sub: '95% of guests gave the location 5 stars.' },
-  { icon: '🔑', title: 'Self check-in',  sub: 'Check yourself in with the smart lock.'   },
+  { icon: <Medal className="w-6 h-6 text-blue-500" />,   title: 'Superhost',      sub: 'Highly-rated and experienced host.'       },
+  { icon: <MapPin className="w-6 h-6 text-blue-500" />,  title: 'Great location', sub: '95% of guests gave the location 5 stars.' },
+  { icon: <KeyRound className="w-6 h-6 text-blue-500" />,title: 'Self check-in',  sub: 'Check yourself in with the smart lock.'   },
 ];
 
 
@@ -178,7 +191,7 @@ export default function ListingDetail() {
   if (!listing) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="text-center">
-        <p className="text-5xl mb-4">🏠</p>
+        <Home className="w-16 h-16 text-gray-300 mx-auto mb-4" />
         <p className="text-xl font-semibold text-gray-800 mb-2">Listing not found</p>
         <button onClick={() => navigate(-1)} className="text-sm text-rose-500 underline">Go back</button>
       </div>
@@ -210,17 +223,18 @@ export default function ListingDetail() {
 
         {/* Meta */}
         <div className="flex items-center gap-2 text-sm text-gray-700 mb-5 flex-wrap">
-          <span className="font-semibold">
-          ★ {reviews.length > 0
-            ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2)
-            : '—'}
+          <span className="font-semibold flex items-center gap-1">
+          <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+          {reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2) : '—'}
         </span>
         <span className="text-gray-300">·</span>
         <span className="underline cursor-pointer font-medium">
           {reviews.length} review{reviews.length !== 1 ? 's' : ''}
         </span>
           <span className="text-gray-300">·</span>
-          <span className="underline cursor-pointer font-medium">📍 {listing.location}</span>
+          <span className="underline cursor-pointer font-medium flex items-center gap-1">
+          <MapPin className="w-3.5 h-3.5" />{listing.location}
+        </span>
         </div>
 
         {/* Photo Grid */}
@@ -242,7 +256,7 @@ export default function ListingDetail() {
           </div>
         ) : (
           <div className="w-full h-[400px] bg-gray-100 rounded-2xl flex items-center justify-center mb-10">
-            <span className="text-7xl">🏠</span>
+            <Home className="w-20 h-20 text-gray-300" />
           </div>
         )}
 
@@ -255,7 +269,7 @@ export default function ListingDetail() {
             <div className="flex items-center justify-between pb-6 border-b border-gray-200">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Hosted by {listing.user?.name || 'Host'}</h2>
-                <p className="text-gray-500 text-sm mt-1">👥 Up to {listing.max_guests} guests · Entire home</p>
+                <Users className="w-4 h-4 inline mr-1"  />Up to {listing.max_guests} guests · Entire home
               </div>
               <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold flex-shrink-0 shadow">
                 {listing.user?.name?.[0]?.toUpperCase() || 'H'}
@@ -284,15 +298,16 @@ export default function ListingDetail() {
               <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                 {(listing.amenities || []).map(a => (
                   <div key={a} className="flex items-center gap-3 text-[15px] text-gray-700">
-                    <span className="text-xl">{AMENITY_ICONS[a] || '✔️'}</span>{a}
-                  </div>
+                  <span className="text-gray-500">{AMENITY_ICONS[a] || <CheckCircle className="w-5 h-5" />}</span>
+                  {a}
+                </div>
                 ))}
               </div>
             </div>
 
             <div className="py-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-1">Where you'll be</h3>
-              <p className="text-sm text-gray-500 mb-4">📍 {listing.location}</p>
+              <MapPin className="w-4 h-4 inline mr-1" />{listing.location}
               <div className="rounded-2xl overflow-hidden border border-gray-200">
                 <MapContainer key={`${listing.latitude}-${listing.longitude}`} center={[listing.latitude, listing.longitude]} zoom={13} scrollWheelZoom={false} className="w-full h-72 z-0">
                   <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -313,11 +328,10 @@ export default function ListingDetail() {
                   <span className="text-blue-200 text-sm">/ night</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-sm">
-                  <span className="font-semibold text-white">
-                    ★ {reviews.length > 0
-                      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2)
-                      : 'No reviews'}
-                  </span>
+                  <span className="font-semibold text-white flex items-center gap-1">
+                  <Star className="w-4 h-4 fill-white text-white" />
+                  {reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2) : 'No reviews'}
+                </span>
                   {reviews.length > 0 && (
                     <>
                       <span className="text-blue-300">·</span>
@@ -329,21 +343,32 @@ export default function ListingDetail() {
 
               {/* Step indicator */}
               {step < 3 && (
-                <div className="flex items-center px-6 pt-4 pb-2 gap-0">
-                  {STEPS.map((label, i) => (
-                    <div key={i} className="flex items-center flex-1">
-                      <div className="flex flex-col items-center flex-1">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all
+                <div className="px-6 pt-4 pb-2">
+                  {/* Top row: circles + lines */}
+                  <div className="flex items-center">
+                    {STEPS.map((label, i) => (
+                      <div key={i} className="flex items-center flex-1 last:flex-none">
+                        <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold transition-all
                           ${i < step ? 'bg-blue-500 text-white' : i === step ? 'bg-blue-500 text-white ring-4 ring-blue-100' : 'bg-gray-100 text-gray-400'}`}>
-                          {i < step ? '✓' : i + 1}
+                          {i < step ? <Check className="w-3.5 h-3.5" /> : i + 1}
                         </div>
-                        <span className={`text-[10px] mt-1 font-medium ${i === step ? 'text-blue-500' : 'text-gray-400'}`}>{label}</span>
+                        {i < STEPS.length - 1 && (
+                          <div className={`h-[2px] flex-1 mx-2 rounded-full ${i < step ? 'bg-blue-500' : 'bg-gray-200'}`} />
+                        )}
                       </div>
-                      {i < STEPS.length - 1 && (
-                        <div className={`h-[2px] flex-1 mb-4 mx-1 rounded-full transition-all ${i < step ? 'bg-blue-500' : 'bg-gray-200'}`} />
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+
+                  {/* Bottom row: labels */}
+                  <div className="flex items-center mt-1">
+                    {STEPS.map((label, i) => (
+                      <div key={i} className="flex-1 last:flex-none">
+                        <span className={`text-[10px] font-medium ${i === step ? 'text-blue-500' : 'text-gray-400'}`}>
+                          {label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -373,7 +398,8 @@ export default function ListingDetail() {
 
                     {form.check_in && form.check_out && rangeHasBlockedDates(form.check_in, form.check_out) && (
                       <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-4">
-                        ❌ Your selected dates include already-booked nights.
+                        <AlertCircle className="w-3.5 h-3.5 inline mr-1" />
+                          Your selected dates include already-booked nights.
                       </p>
                     )}
 
@@ -422,11 +448,7 @@ export default function ListingDetail() {
                         <img src={idPreview} alt="ID preview" className="h-full w-full object-contain rounded-xl p-1" />
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-gray-400">
-                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <rect x="3" y="6" width="18" height="13" rx="2"/>
-                            <circle cx="8.5" cy="11.5" r="1.5"/>
-                            <path d="M15 9h2M15 12h2M3 15l4-4 3 3 2-2 4 4"/>
-                          </svg>
+                          <IdCard className="w-7 h-7 text-gray-400" />
                           <span className="text-xs font-medium">Click to upload ID</span>
                           <span className="text-[10px]">JPG, PNG, WEBP · Max 5MB</span>
                         </div>
@@ -443,8 +465,8 @@ export default function ListingDetail() {
                     {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 mt-3">{error}</div>}
 
                     <div className="flex gap-2 mt-4">
-                      <button onClick={() => { setStep(0); setError(''); }} className="flex-1 py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
-                        ← Back
+                      <button onClick={() => { setStep(0); setError(''); }} className="flex-1 py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition flex items-center justify-center gap-1.5">
+                        <ChevronLeft className="w-4 h-4" /> Back
                       </button>
                       <button onClick={handleUploadId} disabled={uploading || !idFile}
                         className="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed shadow-md transition-all flex items-center justify-center gap-2"
@@ -497,49 +519,51 @@ export default function ListingDetail() {
 
                     {/* ID confirmed badge */}
                     <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5 mb-4">
-                      <span className="text-green-500 text-sm">✓</span>
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                       <span className="text-xs text-green-700 font-medium">Valid ID uploaded successfully</span>
                     </div>
 
                     {/* PayMongo badge */}
                     <div className="flex items-center justify-center gap-1.5 text-[10px] text-gray-400 mb-3">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                      <Lock className="w-3 h-3" />
                       Secured by PayMongo
                     </div>
 
                     {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 mb-4">{error}</div>}
 
                     <div className="flex gap-2">
-                      <button onClick={() => { setStep(1); setError(''); }} className="flex-1 py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
-                        ← Back
+                      <button onClick={() => { setStep(1); setError(''); }} className="flex-1 py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition flex items-center justify-center gap-1.5">
+                        <ChevronLeft className="w-4 h-4" /> Back
                       </button>
                       <button onClick={handlePay} disabled={paying}
                         className="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed shadow-md transition-all flex items-center justify-center gap-2"
                       >
                         {paying
                           ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Redirecting…</>
-                          : '💳 Pay now'
+                          : <><CreditCard className="w-4 h-4" /> Pay now</>
                         }
                       </button>
                     </div>
                   </div>
                 )}
+                   <p className="text-center text-xs text-gray-400 mt-4 underline cursor-pointer hover:text-gray-600 transition">
+                    Report this listing
+                  </p>
               </div>
             </div>
-
-            <p className="text-center text-xs text-gray-400 mt-4 underline cursor-pointer hover:text-gray-600 transition">
-              Report this listing
-            </p>
+     
+            
           </div>
+          
         </div>
 
         {/* Reviews */}
         <div className="mt-10 pt-8 border-t border-gray-200">
-  <h3 className="text-xl font-semibold text-gray-900 mb-6">
-    ★ {reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2)
-      : '—'} · {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-  </h3>
+
+        <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+        <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+        {reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2) : '—'} · {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+      </h3>
 
   {reviews.length === 0 ? (
     <p className="text-sm text-gray-400">No reviews yet.</p>
@@ -557,9 +581,14 @@ export default function ListingDetail() {
                 {new Date(r.created_at).toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}
               </p>
             </div>
-            <div className="ml-auto text-sm font-bold text-amber-500">
-              {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
-            </div>
+            <div className="ml-auto flex gap-0.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                className={`w-3.5 h-3.5 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-200 fill-gray-200'}`}
+              />
+            ))}
+          </div>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">{r.comment}</p>
         </div>

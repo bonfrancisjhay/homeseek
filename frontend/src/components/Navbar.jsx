@@ -3,18 +3,18 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthModal from './AuthModal';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Search, MapPin, CalendarDays, Users } from 'lucide-react';
+import { Search, MapPin, CalendarDays, Users, BookOpen, LogOut, Navigation, Building2, Palmtree, Mountain, Waves, Umbrella, Moon } from 'lucide-react';
 import logo from '../assets/homeseek_logo_prototype1.png';
 import { createPortal } from 'react-dom';
 
 const SUGGESTED_DESTINATIONS = [
-  { icon: '📍', iconBg: 'bg-blue-50',  name: 'Nearby',              desc: "Find what's around you",      isNearby: true },
-  { icon: '🏙️', iconBg: 'bg-green-50', name: 'Manila, Philippines',  desc: 'The bustling capital city'                  },
-  { icon: '🌴', iconBg: 'bg-green-50', name: 'Boracay, Philippines', desc: 'For its white sand beaches'                 },
-  { icon: '🏔️', iconBg: 'bg-green-50', name: 'Baguio, Philippines',  desc: 'For sights like Burnham Park'               },
-  { icon: '🌊', iconBg: 'bg-green-50', name: 'Palawan, Philippines', desc: 'For its stunning lagoons'                   },
-  { icon: '🏖️', iconBg: 'bg-green-50', name: 'Panglao, Philippines', desc: 'For its seaside allure'                     },
-  { icon: '🌃', iconBg: 'bg-green-50', name: 'Makati, Philippines',  desc: 'For its bustling nightlife'                 },
+  { icon: <Navigation className="w-5 h-5 text-blue-500" />,  iconBg: 'bg-blue-50',  name: 'Nearby',              desc: "Find what's around you",      isNearby: true },
+  { icon: <Building2 className="w-5 h-5 text-blue-500" />,  iconBg: 'bg-blue-50', name: 'Manila, Philippines',  desc: 'The bustling capital city'                  },
+  { icon: <Palmtree className="w-5 h-5 text-blue-500" />,   iconBg: 'bg-blue-50', name: 'Boracay, Philippines', desc: 'For its white sand beaches'                 },
+  { icon: <Mountain className="w-5 h-5 text-blue-500" />,   iconBg: 'bg-blue-50', name: 'Baguio, Philippines',  desc: 'For sights like Burnham Park'               },
+  { icon: <Waves className="w-5 h-5 text-blue-500" />,      iconBg: 'bg-blue-50', name: 'Palawan, Philippines', desc: 'For its stunning lagoons'                   },
+  { icon: <Umbrella className="w-5 h-5 text-blue-500" />,   iconBg: 'bg-blue-50', name: 'Panglao, Philippines', desc: 'For its seaside allure'                     },
+  { icon: <Moon className="w-5 h-5 text-blue-500" />,       iconBg: 'bg-blue-50', name: 'Makati, Philippines',  desc: 'For its bustling nightlife'                 },
 ];
 
 const GUEST_TYPES = [
@@ -239,24 +239,24 @@ function Navbar({ onSearch }) {
   {/* Dropdown */}
   {showMenu && (
     <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-      <Link
-        to="/my-bookings"
-        onClick={() => setShowMenu(false)}
-        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
-      >
-        🗓️ My Bookings
-      </Link>
-      <div className="h-px bg-gray-100 mx-3" />
-      <button
-        onClick={handleLogout}
-        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
-      >
-        🚪 Logout
-      </button>
+     <Link
+      to="/my-bookings"
+      onClick={() => setShowMenu(false)}
+      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
+    >
+      <BookOpen className="w-4 h-4 text-gray-400" /> My Bookings
+    </Link>
+    <div className="h-px bg-gray-100 mx-3" />
+    <button
+      onClick={handleLogout}
+      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
+    >
+      <LogOut className="w-4 h-4 text-gray-400" /> Logout
+    </button>
+        </div>
+      )}
     </div>
-  )}
-</div>
-    )}
+        )}
   </>
             ) : (
               <Link
@@ -369,7 +369,7 @@ function Navbar({ onSearch }) {
               onClick={() => handleSelectDestination(dest)}
             >
               <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${dest.iconBg}`}>
-                <span className="text-xl">{dest.icon}</span>
+               {dest.icon}
               </div>
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-semibold text-gray-800">{dest.name}</span>

@@ -11,14 +11,23 @@ class AutoCheckoutBookings extends Command
     protected $description = 'Automatically check out bookings past their check-out date';
 
     public function handle()
-    {
-        $count = Booking::where('status', 'checked_in')
-            ->whereDate('check_out', '<', today())
-            ->update([
-                'status'         => 'checked_out',
-                'checked_out_at' => now(),
-            ]);
+{
+    // Checked in guests → checked_out (they stayed, can review)
+    $checkedIn = Booking::where('status', 'checked_in')
+        ->whereDate('check_out', '<', today())
+        ->update([
+            'status'         => 'checked_out',
+            'checked_out_at' => now(),
+        ]);
 
-        $this->info("Auto-checked out {$count} booking(s).");
-    }
+    // Confirmed but never checked in → cancelled (they never stayed, no review)
+    $noShow = Booking::where('status', 'confirmed')
+        ->whereDate('check_out', '<', today())
+        ->update([
+            'status' => 'cancelled',
+        ]);
+
+    $this->info("Auto-checked out {$checkedIn} booking(s).");
+    $this->info("Cancelled {$noShow} no-show booking(s).");
+}
 }
