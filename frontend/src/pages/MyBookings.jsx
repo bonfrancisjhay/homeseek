@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import QRCode from "react-qr-code";
+import { MapPin } from 'lucide-react';
 
 
 const BASE_URL = (import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000').replace(/\/$/, '');
@@ -332,9 +333,10 @@ export default function MyBookings() {
         {b.listing?.title || 'Listing'}
       </h2>
 
-      <p className="text-sm text-gray-500 mt-1 line-clamp-1">
-        📍 {b.listing?.location || 'Unknown location'}
-      </p>
+      <p className="text-sm text-gray-500 mt-1 line-clamp-1 flex items-center gap-1">
+      <MapPin className="w-3.5 h-3.5" />
+      {b.listing?.location || 'Unknown location'}
+    </p>
     </div>
 
     {/* DETAILS */}

@@ -46,6 +46,8 @@ function Listings({ searchFilter }) {
         if (pendingId) navigate(`/listings/${pendingId}`);
     };
 
+    
+
     return (
         <div className="bg-white min-h-screen">
             {showModal && (
@@ -56,6 +58,7 @@ function Listings({ searchFilter }) {
             )}
 
             <div className="max-w-[1400px] mx-auto px-6 py-8">
+
                 {loading ? (
                     // Skeleton
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">

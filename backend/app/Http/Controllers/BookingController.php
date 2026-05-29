@@ -176,10 +176,15 @@ class BookingController extends Controller
         ], 404);
     }
 
-    // Check if today is the actual check-in date
-    if (today()->toDateString() !== $booking->check_in) {
+     $checkInDate = \Carbon\Carbon::parse($booking->check_in)
+        ->setTimezone(config('app.timezone'))
+        ->toDateString();
+
+     if (today()->toDateString() !== $checkInDate) {
         return response()->json([
-            'message' => 'Check-in is only allowed on ' . \Carbon\Carbon::parse($booking->check_in)->format('M d, Y')
+            'message' => 'Check-in is only allowed on ' . \Carbon\Carbon::parse($booking->check_in)
+                ->setTimezone(config('app.timezone'))
+                ->format('M d, Y')
         ], 403);
     }
 

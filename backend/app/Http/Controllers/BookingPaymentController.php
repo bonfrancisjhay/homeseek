@@ -7,6 +7,7 @@ use App\Models\Listing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class BookingPaymentController extends Controller
 {
@@ -98,20 +99,21 @@ class BookingPaymentController extends Controller
             "valid_id:" . base64_encode($request->valid_id_path),
         ]);
 
-        $response = Http::withBasicAuth($this->secretKey, '')
-            ->post('https://api.paymongo.com/v1/links', [
-                'data' => [
-                    'attributes' => [
-                        'amount'      => $amountCentavos,
-                        'description' => "Homeseek Booking — {$listing->title}",
-                        'remarks'     => $remarks,
-                        'redirect'    => [
-                            'success' => config('app.frontend_url', 'http://localhost:5173') . '/booking/success',
-                            'failed'  => config('app.frontend_url', 'http://localhost:5173') . '/booking/failed',
-                        ],
-                    ]
-                ]
-            ]);
+        $response = Http::withoutVerifying()
+    ->withBasicAuth($this->secretKey, '')
+    ->post('https://api.paymongo.com/v1/links', [
+        'data' => [
+            'attributes' => [
+                'amount'      => $amountCentavos,
+                'description' => "Homeseek Booking — {$listing->title}",
+                'remarks'     => $remarks,
+                'redirect'    => [
+                    'success' => config('app.frontend_url', 'http://localhost:5173') . '/booking/success',
+                    'failed'  => config('app.frontend_url', 'http://localhost:5173') . '/booking/failed',
+                ],
+            ]
+        ]
+    ]);
 
         if (!$response->successful()) {
             return response()->json([
@@ -178,6 +180,8 @@ class BookingPaymentController extends Controller
                         'status'             => 'pending',
                         'valid_id'           => $validId,
                         'paymongo_payment_id'=> $data['id'] ?? null,
+                        'qr_token'           => (string) Str::uuid(),  // ← add
+                        'checkin_code'       => random_int(100000, 999999), // ← add
                     ]);
                 }
             }

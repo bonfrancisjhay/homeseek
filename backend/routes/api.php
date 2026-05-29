@@ -12,6 +12,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ReviewController;
 
 
+
 // ── PUBLIC ROUTES ──────────────────────────────────────
 Route::post('/register',     [AuthController::class, 'register']);
 Route::post('/login',        [AuthController::class, 'login']);

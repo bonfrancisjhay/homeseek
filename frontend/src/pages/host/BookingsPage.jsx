@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { CalendarDays, Users, BadgeDollarSign, Clock, CheckCircle, XCircle, ChevronDown } from 'lucide-react';
 import api from '../../services/api';
-import { BrowserQRCodeReader } from '@zxing/browser';
+import jsQR from 'jsqr';
+
 
 const BASE_URL = (import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
@@ -41,34 +42,59 @@ const nights = (a, b) =>
 
 function QRScanner({ onScan, onClose }) {
   const videoRef = useRef(null);
+  const canvasRef = useRef(document.createElement('canvas'));
+  const rafRef = useRef(null);
 
   useEffect(() => {
-    let codeReader;
-    const start = async () => {
-      codeReader = new BrowserQRCodeReader();
+    let stream;
+
+    const startCamera = async () => {
       try {
-        await codeReader.decodeFromVideoDevice(null, videoRef.current, (result) => {
-          if (result) {
-            onScan(result.getText());
-            codeReader.reset();
-          }
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' } // use back camera
         });
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        scan();
       } catch (e) {
         alert('Camera access denied or unavailable.');
         onClose();
       }
     };
-    start();
-    return () => { if (codeReader) codeReader.reset(); };
+
+    const scan = () => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          onScan(code.data);
+          return;
+        }
+      }
+      rafRef.current = requestAnimationFrame(scan);
+    };
+
+    startCamera();
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    };
   }, []);
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
       <div className="bg-white rounded-2xl p-5 w-80 shadow-xl">
         <p className="text-sm font-semibold text-gray-700 mb-3 text-center">Scan Guest QR Code</p>
-        <video ref={videoRef} className="w-full rounded-xl" />
+        <video ref={videoRef} className="w-full rounded-xl" playsInline muted />
         <p className="text-xs text-gray-400 text-center mt-2">Point camera at guest's QR code</p>
-        <button onClick={onClose} className="mt-4 w-full py-2 rounded-xl border border-red-200 text-red-500 text-sm hover:bg-red-50 transition">
+        <button onClick={onClose} className="mt-4 w-full py-2 rounded-xl border border-blue-200 text-blue-500 text-sm hover:bg-blue-50 transition">
           Cancel
         </button>
       </div>
@@ -385,7 +411,10 @@ export default function BookingsPage() {
   {/* Check-in button (ONLY confirmed) */}
   {b.status === 'confirmed' && (
   <button
-    onClick={() => setScanning(b.qr_token)}
+    onClick={() => {
+      console.log('qr_token:', b.qr_token); // ← add this
+      setScanning(b.qr_token);
+    }}
     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 transition"
   >
     Scan QR
