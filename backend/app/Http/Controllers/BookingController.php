@@ -12,6 +12,13 @@ class BookingController extends Controller
     // Get all bookings of logged in user
     public function index(Request $request)
 {
+
+     Booking::where('user_id', $request->user()->id)
+        ->where('status', 'confirmed')
+        ->whereNull('checked_in_at')
+        ->whereDate('check_in', '<', today())
+        ->update(['status' => 'cancelled']);
+        
     $bookings = Booking::with(['listing', 'review'])
         ->where('user_id', $request->user()->id)
         ->orderBy('created_at', 'desc')
@@ -136,6 +143,14 @@ class BookingController extends Controller
         'status'         => 'checked_out',
         'checked_out_at' => now(),
     ]);
+
+    Booking::whereHas('listing', fn($q) =>
+        $q->where('user_id', $request->user()->id)
+    )
+    ->where('status', 'confirmed')
+    ->whereNull('checked_in_at')
+    ->whereDate('check_in', '<', today())
+    ->update(['status' => 'cancelled']);
 
     $bookings = Booking::with(['listing', 'user'])
         ->whereHas('listing', fn($q) =>
