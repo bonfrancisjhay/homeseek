@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthModal from './AuthModal';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Search, MapPin, CalendarDays, Users, BookOpen, LogOut, Navigation, Building2, Palmtree, Mountain, Waves, Umbrella, Moon } from 'lucide-react';
+import { Search, MapPin, CalendarDays, Users, BookOpen, LogOut, Navigation, Building2, Palmtree, Mountain, Waves, Umbrella, Moon, MessageCircle } from 'lucide-react';
 import logo from '../assets/homeseek_logo_prototype1.png';
 import { createPortal } from 'react-dom';
 
@@ -245,6 +245,13 @@ function Navbar({ onSearch }) {
       className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
     >
       <BookOpen className="w-4 h-4 text-gray-400" /> My Bookings
+    </Link>
+    <Link
+      to="/messages"
+      onClick={() => setShowMenu(false)}
+      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
+    >
+      <MessageCircle className="w-4 h-4 text-gray-400" /> Messages
     </Link>
     <div className="h-px bg-gray-100 mx-3" />
     <button

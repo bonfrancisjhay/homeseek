@@ -8,6 +8,7 @@ import ListingsPage from './ListingsPage';
 import BookingsPage from './BookingsPage';
 import EarningsPage from './EarningsPage';
 import SettingsPage from './SettingsPage';
+import MessagesPage from '../MessagesPage';
 
 
 
@@ -61,6 +62,7 @@ function HostDashboard() {
                 )}
 
             {activePage === 'bookings' && <BookingsPage />}
+            {activePage === 'messages' && <MessagesPage />}
             {activePage === 'earnings' && <EarningsPage />}
             {activePage === 'settings' && <SettingsPage user={user} />}
 

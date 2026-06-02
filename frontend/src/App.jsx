@@ -14,6 +14,7 @@ import TrialBanner from './components/TrialBanner';
 import SubscriptionModal from './components/SubscriptionModal'; 
 import PaymentSuccess from "./pages/PaymentSuccess"; 
 import PaymentFailed  from "./pages/PaymentFailed";  
+import MessagesPage from './pages/MessagesPage';
 import axios from 'axios';
 
 
@@ -76,6 +77,8 @@ function App() {
           }
         />
         <Route path="/register"       element={<Auth />} />
+        <Route path="/messages" element={<MessagesPage />} />
+        <Route path="/messages/:conversationId" element={<MessagesPage />} /> 
         <Route path="/createlisting"  element={<CreateListing />} />
         <Route path="/listings/:id"   element={<ListingDetail />} />
         <Route path="/my-bookings" element={<MyBookings />} />

@@ -11,7 +11,7 @@ import {
   Wifi, Wind, UtensilsCrossed, ParkingCircle, Waves, Dumbbell,
   Tv, WashingMachine, Shirt, PawPrint, MapPin, Medal, KeyRound,
   Star, Users, Heart, Lock, CreditCard, ChevronLeft, AlertCircle,
-  IdCard, CheckCircle, Upload, Home, Check
+  IdCard, CheckCircle, Upload, Home, Check, MessageCircle 
 } from 'lucide-react';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -66,6 +66,21 @@ export default function ListingDetail() {
 
   const token = localStorage.getItem('token');
   const today = new Date().toISOString().split('T')[0];
+
+
+  const handleMessageHost = async () => {
+  if (!token) { navigate('/login'); return; }
+  try {
+    const res = await api.post('/conversations', {
+      host_id:    listing.user?.id,
+      listing_id: listing.id,
+    });
+    // Navigate directly to the conversation (new or existing)
+    navigate(`/messages/${res.data.id}`);
+  } catch (err) {
+    console.error('Failed to open conversation', err);
+  }
+};
 
   useEffect(() => {
     api.get(`/listings/${id}`)
@@ -269,10 +284,24 @@ export default function ListingDetail() {
             <div className="flex items-center justify-between pb-6 border-b border-gray-200">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Hosted by {listing.user?.name || 'Host'}</h2>
-                <Users className="w-4 h-4 inline mr-1"  />Up to {listing.max_guests} guests · Entire home
+                <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                  <Users className="w-4 h-4 inline" />
+                  Up to {listing.max_guests} guests · Entire home
+                </p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold flex-shrink-0 shadow">
-                {listing.user?.name?.[0]?.toUpperCase() || 'H'}
+              <div className="flex flex-col items-end gap-2">
+                <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold flex-shrink-0 shadow">
+                  {listing.user?.name?.[0]?.toUpperCase() || 'H'}
+                </div>
+                {token && (
+                  <button
+                    onClick={handleMessageHost}
+                    className="flex items-center gap-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-full px-3 py-1.5 hover:bg-blue-50 transition"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Message host
+                  </button>
+                )}
               </div>
             </div>
 

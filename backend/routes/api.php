@@ -12,6 +12,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\ConversationController;
 
 
 
@@ -39,8 +40,14 @@ Route::post('/webhook/paymongo-booking', [BookingPaymentController::class,  'web
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    Route::get('/conversations', [ConversationController::class, 'index']);
+    Route::post('/conversations', [ConversationController::class, 'store']);
+
+    Route::get('/host/conversations', [ConversationController::class, 'hostConversations']);
+
     Route::get('/conversations/{conversation}/messages', [MessageController::class, 'index']);
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store']);
+    Route::get('/conversations/{conversation}', [ConversationController::class, 'show']);
     Route::post('/ai-chat', [AiChatController::class, 'ask']);
 
     // Review after booking

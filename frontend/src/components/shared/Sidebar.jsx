@@ -1,4 +1,4 @@
-import { LayoutDashboard, Home, CalendarDays, Banknote, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Home, CalendarDays, Banknote, Settings, LogOut, MessageCircle } from 'lucide-react';
 
 const BLUE       = '#3b82f6';
 const BLUE_LIGHT = '#eff6ff';
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { key: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { key: 'listings',  icon: Home,            label: 'Listings'  },
   { key: 'bookings',  icon: CalendarDays,    label: 'Bookings'  },
+  { key: 'messages',  icon: MessageCircle,    label: 'Messages'  },
   { key: 'earnings',  icon: Banknote,        label: 'Earnings'  },
   { key: 'settings',  icon: Settings,        label: 'Settings'  },
 ];

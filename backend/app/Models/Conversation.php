@@ -9,6 +9,7 @@ class Conversation extends Model
     protected $fillable = [
         'user_one_id',
         'user_two_id',
+        'listing_id',
     ];
 
     public function userOne()
@@ -24,6 +25,10 @@ class Conversation extends Model
     public function messages()
     {
         return $this->hasMany(Message::class);
+    }
+    public function listing()
+    {
+        return $this->belongsTo(Listing::class);
     }
 
     public function getOtherUser($userId)
