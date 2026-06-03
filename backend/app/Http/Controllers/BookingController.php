@@ -152,7 +152,7 @@ class BookingController extends Controller
     ->whereDate('check_in', '<', today())
     ->update(['status' => 'cancelled']);
 
-    $bookings = Booking::with(['listing', 'user'])
+    $bookings = Booking::with(['listing', 'user', 'review'])
         ->whereHas('listing', fn($q) =>
             $q->where('user_id', $request->user()->id)
         )

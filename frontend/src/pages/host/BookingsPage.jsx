@@ -1,37 +1,28 @@
 import { useEffect, useState, useRef } from 'react';
-import { CalendarDays, Users, BadgeDollarSign, Clock, CheckCircle, XCircle, ChevronDown } from 'lucide-react';
+import { CalendarDays, Users, ChevronDown } from 'lucide-react';
 import api from '../../services/api';
 import jsQR from 'jsqr';
 
-
 const BASE_URL = (import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
-const BLUE        = '#3b82f6';
-const BLUE_LIGHT  = '#eff6ff';
+const BLUE       = '#3b82f6';
+const BLUE_LIGHT = '#eff6ff';
 
 const STATUS_CONFIG = {
-  pending:   { label: 'Pending',   pill: 'bg-amber-50 text-amber-700 border-amber-200',  dot: 'bg-amber-400'  },
-  confirmed: { label: 'Confirmed', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-400' },
-  cancelled: { label: 'Cancelled', pill: 'bg-gray-100 text-gray-400 border-gray-200',    dot: 'bg-gray-300'   },
-  checked_in: {
-  label: 'Checked In',
-  pill: 'bg-blue-50 text-blue-700 border-blue-200',
-  dot: 'bg-blue-400'
-  },
-  checked_out: {
-      label: 'Checked Out',
-      pill: 'bg-purple-50 text-purple-700 border-purple-200',
-      dot: 'bg-purple-400'
-  },
+  pending:     { label: 'Pending',     pill: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-400'   },
+  confirmed:   { label: 'Confirmed',   pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-400' },
+  cancelled:   { label: 'Cancelled',   pill: 'bg-gray-100 text-gray-400 border-gray-200',         dot: 'bg-gray-300'    },
+  checked_in:  { label: 'Checked In',  pill: 'bg-blue-50 text-blue-700 border-blue-200',          dot: 'bg-blue-400'    },
+  checked_out: { label: 'Checked Out', pill: 'bg-purple-50 text-purple-700 border-purple-200',    dot: 'bg-purple-400'  },
 };
 
 const FILTERS = [
-  { key: 'all',       label: 'All'       },
-  { key: 'pending',   label: 'Pending'   },
-  { key: 'confirmed', label: 'Confirmed' },
-  { key: 'checked_in', label: 'Checked In' },
-  { key: 'checked_out', label: 'Checked Out' },
-  { key: 'cancelled', label: 'Cancelled' },
+  { key: 'all',         label: 'All'          },
+  { key: 'pending',     label: 'Pending'      },
+  { key: 'confirmed',   label: 'Confirmed'    },
+  { key: 'checked_in',  label: 'Checked In'   },
+  { key: 'checked_out', label: 'Checked Out'  },
+  { key: 'cancelled',   label: 'Cancelled'    },
 ];
 
 const formatDate = (d) =>
@@ -41,47 +32,38 @@ const nights = (a, b) =>
   Math.max(0, Math.ceil((new Date(b) - new Date(a)) / 86400000));
 
 function QRScanner({ onScan, onClose }) {
-  const videoRef = useRef(null);
+  const videoRef  = useRef(null);
   const canvasRef = useRef(document.createElement('canvas'));
-  const rafRef = useRef(null);
+  const rafRef    = useRef(null);
 
   useEffect(() => {
     let stream;
-
     const startCamera = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' } // use back camera
-        });
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         videoRef.current.srcObject = stream;
         videoRef.current.play();
         scan();
-      } catch (e) {
+      } catch {
         alert('Camera access denied or unavailable.');
         onClose();
       }
     };
-
     const scan = () => {
-      const video = videoRef.current;
+      const video  = videoRef.current;
       const canvas = canvasRef.current;
       if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.height = video.videoHeight;
-        canvas.width = video.videoWidth;
+        canvas.width  = video.videoWidth;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height);
-        if (code) {
-          onScan(code.data);
-          return;
-        }
+        if (code) { onScan(code.data); return; }
       }
       rafRef.current = requestAnimationFrame(scan);
     };
-
     startCamera();
-
     return () => {
       cancelAnimationFrame(rafRef.current);
       if (stream) stream.getTracks().forEach(t => t.stop());
@@ -103,37 +85,30 @@ function QRScanner({ onScan, onClose }) {
 }
 
 export default function BookingsPage() {
-  const [bookings,  setBookings]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [filter,    setFilter]    = useState('all');
-  const [updating,  setUpdating]  = useState(null);
-  const [error,     setError]     = useState('');
-  const [search,    setSearch]    = useState('');
-  const [expanded,  setExpanded]  = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [filter,   setFilter]   = useState('all');
+  const [updating, setUpdating] = useState(null);
+  const [error,    setError]    = useState('');
+  const [search,   setSearch]   = useState('');
+  const [expanded, setExpanded] = useState(null);
   const [scanning, setScanning] = useState(false);
 
-
   const handleCheckIn = async (qrToken) => {
-  try {
-    const res = await api.post('/bookings/check-in', {
-      qr_token: qrToken
-    });
-
-    alert(res.data.message);
-
-    // update UI instantly
-    setBookings(prev =>
-      prev.map(b =>
-        b.qr_token === qrToken
-          ? { ...b, status: 'checked_in', checked_in_at: new Date().toISOString() }
-          : b
-      )
-    );
-
-  } catch (err) {
-    alert(err.response?.data?.message || 'Check-in failed');
-  }
-};
+    try {
+      const res = await api.post('/bookings/check-in', { qr_token: qrToken });
+      alert(res.data.message);
+      setBookings(prev =>
+        prev.map(b =>
+          b.qr_token === qrToken
+            ? { ...b, status: 'checked_in', checked_in_at: new Date().toISOString() }
+            : b
+        )
+      );
+    } catch (err) {
+      alert(err.response?.data?.message || 'Check-in failed');
+    }
+  };
 
   useEffect(() => {
     api.get('/host/bookings')
@@ -154,6 +129,15 @@ export default function BookingsPage() {
     }
   };
 
+  const counts = {
+    all:         bookings.length,
+    pending:     bookings.filter(b => b.status === 'pending').length,
+    confirmed:   bookings.filter(b => b.status === 'confirmed').length,
+    checked_in:  bookings.filter(b => b.status === 'checked_in').length,
+    checked_out: bookings.filter(b => b.status === 'checked_out').length,
+    cancelled:   bookings.filter(b => b.status === 'cancelled').length,
+  };
+
   const filtered = bookings
     .filter(b => filter === 'all' || b.status === filter)
     .filter(b => {
@@ -165,19 +149,6 @@ export default function BookingsPage() {
         b.listing?.location?.toLowerCase().includes(q)
       );
     });
-
-  const counts = {
-    all:       bookings.length,
-    pending:   bookings.filter(b => b.status === 'pending').length,
-    confirmed: bookings.filter(b => b.status === 'confirmed').length,
-    checked_in: bookings.filter(b => b.status === 'checked_in').length,
-    checked_out: bookings.filter(b => b.status === 'checked_out').length,
-    cancelled: bookings.filter(b => b.status === 'cancelled').length,
-  };
-
-  const totalRevenue = bookings
-  .filter(b => b.status === 'confirmed' || b.status === 'checked_in')
-  .reduce((sum, b) => sum + Number(b.total_price), 0);
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -191,7 +162,7 @@ export default function BookingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 space-y-5 font-sans">
 
-      {/* ── HERO HEADER — matches DashboardPage hero style ── */}
+      {/* ── HEADER ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6 flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-light text-gray-800" style={{ fontFamily: "'Fraunces', serif" }}>
@@ -214,57 +185,6 @@ export default function BookingsPage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-      </div>
-
-      {/* ── STAT CARDS — same pattern as DashboardPage ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          {
-            label:   'Total Bookings',
-            value:   counts.all,
-            icon:    <CalendarDays size={17} color={BLUE} strokeWidth={1.75} />,
-            iconBg:  BLUE_LIGHT,
-            badge:   'Total',
-            badgeCls:'bg-gray-100 text-gray-500',
-          },
-          {
-            label:   'Pending Review',
-            value:   counts.pending,
-            icon:    <Clock size={17} color="#d97706" strokeWidth={1.75} />,
-            iconBg:  '#fffbeb',
-            badge:   'Awaiting',
-            badgeCls:'bg-amber-50 text-amber-600',
-          },
-          {
-            label:   'Confirmed',
-            value:   counts.confirmed,
-            icon:    <CheckCircle size={17} color="#16a34a" strokeWidth={1.75} />,
-            iconBg:  '#f0fdf4',
-            badge:   'Active',
-            badgeCls:'bg-emerald-50 text-emerald-700',
-          },
-          {
-            label:   'Confirmed Revenue',
-            value:   `₱${totalRevenue.toLocaleString()}`,
-            icon:    <BadgeDollarSign size={17} color={BLUE} strokeWidth={1.75} />,
-            iconBg:  BLUE_LIGHT,
-            badge:   'Earned',
-            badgeCls:'bg-emerald-50 text-emerald-700',
-          },
-        ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 relative overflow-hidden hover:shadow-md transition-shadow">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-4" style={{ background: s.iconBg }}>
-              {s.icon}
-            </div>
-            <span className={`absolute top-4 right-4 text-[10px] font-medium px-2.5 py-1 rounded-full ${s.badgeCls}`}>
-              {s.badge}
-            </span>
-            <p className="text-2xl font-light text-gray-800" style={{ fontFamily: "'Fraunces', serif" }}>
-              {s.value}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">{s.label}</p>
-          </div>
-        ))}
       </div>
 
       {/* ── FILTER PILLS ── */}
@@ -307,11 +227,10 @@ export default function BookingsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {filtered.map((b, idx) => {
+          {filtered.map((b) => {
             const cfg        = STATUS_CONFIG[b.status] || STATUS_CONFIG.pending;
             const n          = nights(b.check_in, b.check_out);
             const imgSrc     = b.listing?.images?.[0] ? `${BASE_URL}${b.listing.images[0]}` : null;
-            const isPending  = b.status === 'pending';
             const isExpanded = expanded === b.id;
             const initial    = b.user?.name?.[0]?.toUpperCase() || 'G';
 
@@ -385,58 +304,49 @@ export default function BookingsPage() {
                   </span>
 
                   {/* Actions */}
-<div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {b.status === 'pending' && (
+                      <>
+                        <button
+                          disabled={!!updating}
+                          onClick={() => handleStatus(b.id, 'confirmed')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          disabled={!!updating}
+                          onClick={() => handleStatus(b.id, 'cancelled')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
 
-  {/* Pending actions */}
-  {b.status === 'pending' && (
-    <>
-      <button
-        disabled={!!updating}
-        onClick={() => handleStatus(b.id, 'confirmed')}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        Confirm
-      </button>
+                    {b.status === 'confirmed' && (
+                      <button
+                        onClick={() => setScanning(b.qr_token)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 transition"
+                      >
+                        Scan QR
+                      </button>
+                    )}
 
-      <button
-        disabled={!!updating}
-        onClick={() => handleStatus(b.id, 'cancelled')}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        Reject
-      </button>
-    </>
-  )}
+                    <button
+                      onClick={() => setExpanded(isExpanded ? null : b.id)}
+                      className="text-gray-300 hover:text-blue-400 transition p-1.5 rounded-lg hover:bg-blue-50"
+                    >
+                      <ChevronDown
+                        size={15}
+                        strokeWidth={2}
+                        className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  </div>
+                </div>
 
-  {/* Check-in button (ONLY confirmed) */}
-  {b.status === 'confirmed' && (
-  <button
-    onClick={() => {
-      console.log('qr_token:', b.qr_token); // ← add this
-      setScanning(b.qr_token);
-    }}
-    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 transition"
-  >
-    Scan QR
-  </button>
-)}
-
-  {/* Expand */}
-  <button
-    onClick={() => setExpanded(isExpanded ? null : b.id)}
-    className="text-gray-300 hover:text-blue-400 transition p-1.5 rounded-lg hover:bg-blue-50"
-  >
-    <ChevronDown
-      size={15}
-      strokeWidth={2}
-      className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-    />
-  </button>
-
-</div>
-</div>
-
-                {/* ── EXPANDED DETAIL PANEL ── */}
+                {/* ── EXPANDED DETAIL ── */}
                 {isExpanded && (
                   <div className="border-t border-gray-100 bg-gray-50 px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {[
@@ -465,15 +375,13 @@ export default function BookingsPage() {
           })}
         </div>
       )}
+
       {scanning && (
-  <QRScanner
-    onScan={(token) => {
-      setScanning(false);
-      handleCheckIn(token);
-    }}
-    onClose={() => setScanning(false)}
-  />
-)}
+        <QRScanner
+          onScan={(token) => { setScanning(false); handleCheckIn(token); }}
+          onClose={() => setScanning(false)}
+        />
+      )}
     </div>
   );
 }
