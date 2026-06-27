@@ -15,6 +15,7 @@ import SubscriptionModal from './components/SubscriptionModal';
 import PaymentSuccess from "./pages/PaymentSuccess"; 
 import PaymentFailed  from "./pages/PaymentFailed";  
 import MessagesPage from './pages/MessagesPage';
+import { subscriptionEvents } from './utils/subscriptionEvents';
 import axios from 'axios';
 
 
@@ -30,6 +31,7 @@ const AdminRoute = ({ children }) => {
 function App() {
   const [searchFilter, setSearchFilter] = useState({});
   const [showSubModal, setShowSubModal]       = useState(false); 
+  const [subModalData, setSubModalData] = useState(null); // ADD THIS LINE
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user'));
  
@@ -59,12 +61,26 @@ function App() {
     checkSub();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = subscriptionEvents.on((data) => {
+      setSubModalData(data);
+      setShowSubModal(true);
+    });
+    return unsubscribe;
+  }, []);
+
   return (
     
     <BrowserRouter>
       <Navbar onSearch={(params) => setSearchFilter(params)} />
       <TrialBanner />
-      {showSubModal && <SubscriptionModal />}
+      {showSubModal && (
+        <SubscriptionModal
+          message={subModalData?.message}
+          trialEndsAt={subModalData?.trial_ends_at}
+          onClose={() => setShowSubModal(false)}
+        />
+      )}
       <Routes>
         <Route
           path="/"

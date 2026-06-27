@@ -11,7 +11,20 @@ class ListingController extends Controller
     // Get all listings
     public function index(Request $request)
 {
-    $query = Listing::with(['user', 'reviews'])->latest();
+    $query = Listing::with(['user', 'reviews'])
+        ->whereHas('user.subscription', function ($q) {
+            $q->where(function ($q2) {
+                $q2->where('status', 'trialing')
+                   ->where('trial_ends_at', '>', now());
+            })->orWhere(function ($q2) {
+                $q2->where('status', 'active')
+                   ->where(function ($q3) {
+                       $q3->whereNull('expires_at')
+                          ->orWhere('expires_at', '>', now());
+                   });
+            });
+        })
+        ->latest();
 
     // Filter by location
     if ($request->filled('location')) {

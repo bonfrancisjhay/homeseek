@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { subscriptionEvents } from '../utils/subscriptionEvents' // fix path to match your folder structure
+
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -18,6 +20,18 @@ api.interceptors.request.use((config) => {
 
   return config
 })
+
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const code = error.response?.data?.code
+    if (error.response?.status === 403 && code === 'SUBSCRIPTION_EXPIRED') {
+      subscriptionEvents.emit(error.response.data)
+    }
+    return Promise.reject(error)
+  }
+)
 
 
 // CREATE LISTING

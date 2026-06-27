@@ -10,6 +10,9 @@ import {
 } from 'recharts';
 import api from '../../services/api';
 
+const BASE_URL = (import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000').replace(/\/$/, '');
+
+
 const BLUE       = '#3b82f6';
 const BLUE_LIGHT = '#eff6ff';
 const MONTHS     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -370,67 +373,51 @@ export default function AdminDashboardPage() {
 
         {/* Top listings by bookings */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50">
-            <p className="text-sm font-medium text-gray-700">Top listings</p>
-            <p className="text-xs text-gray-400 mt-0.5">Ranked by booking count</p>
-          </div>
-          {topListings.length === 0 ? (
-            <p className="text-center text-sm text-gray-400 py-8">No listings yet</p>
-          ) : (
-            topListings.map((l, i) => (
-              <div key={l.id} className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 last:border-0">
-                <span className="text-xs font-semibold text-gray-300 w-4 flex-shrink-0">#{i + 1}</span>
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 text-sm">
-                  🏠
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{l.title}</p>
-                  <p className="text-xs text-gray-400 truncate">{l.location}</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-sm font-medium text-gray-700">{l.bookingCount}</p>
-                  <p className="text-[10px] text-gray-400">bookings</p>
-                </div>
-              </div>
-            ))
-          )}
+  <div className="px-5 py-4 border-b border-gray-50">
+    <p className="text-sm font-medium text-gray-700">Top listings</p>
+    <p className="text-xs text-gray-400 mt-0.5">Ranked by booking count</p>
+  </div>
+  {topListings.length === 0 ? (
+    <p className="text-center text-sm text-gray-400 py-8">No listings yet</p>
+  ) : (
+    topListings.map((l, i) => {
+  const raw = l.images?.[0] || l.photo || null;
+  const thumb = raw
+    ? (raw.startsWith('http') ? raw : `${BASE_URL}${raw.startsWith('/') ? '' : '/'}${raw}`)
+    : null;
+  return (
+    <div key={l.id} className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 last:border-0">
+      <span className="text-xs font-semibold text-gray-300 w-4 flex-shrink-0">#{i + 1}</span>
+      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        {thumb ? (
+          <img
+            src={thumb}
+            alt={l.title}
+            className="w-full h-full object-cover"
+            onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+          />
+        ) : null}
+        <div className="w-full h-full flex items-center justify-center" style={{ display: thumb ? 'none' : 'flex' }}>
+          <Home size={14} color="#3b82f6" strokeWidth={1.75} />
         </div>
       </div>
-
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-800 truncate">{l.title}</p>
+        <p className="text-xs text-gray-400 truncate">{l.location}</p>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <p className="text-sm font-medium text-gray-700">{l.bookingCount}</p>
+        <p className="text-[10px] text-gray-400">bookings</p>
+      </div>
+    </div>
+  );
+})
+  )}
+</div>
+</div>
       {/* ── RECENT USERS + RECENT BOOKINGS ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {/* Recent users */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-700">Recent users</p>
-              <p className="text-xs text-gray-400 mt-0.5">Latest registered accounts</p>
-            </div>
-            <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-600">
-              {users.length} total
-            </span>
-          </div>
-          {(stats?.recent_users ?? []).length === 0 ? (
-            <p className="text-center text-sm text-gray-400 py-8">No users yet</p>
-          ) : (
-            (stats?.recent_users ?? []).map((u, i) => (
-              <div key={i} className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 last:border-0">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{ background: BLUE_LIGHT, color: BLUE }}
-                >
-                  {u.name?.[0]?.toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{u.name}</p>
-                  <p className="text-xs text-gray-400 truncate">{u.email}</p>
-                </div>
-                <RoleBadge role={u.role} />
-              </div>
-            ))
-          )}
-        </div>
+  
 
         {/* Recent bookings */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -465,6 +452,5 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-    </div>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import styles from '../../components/shared/dashboardStyles';
 import AdminSidebar from './AdminSidebar';
 import AdminDashboardPage from './AdminDashboardPage';
-// import AdminUsersPage from './AdminUsersPage';
+import AdminUsersPage from './AdminUsersPage';
 // import AdminListingsPage from './AdminListingsPage';
 // import AdminBookingsPage from './AdminBookingsPage';
 // import AdminSettingsPage from './AdminSettingsPage';
@@ -48,8 +48,8 @@ function AdminDashboard() {
             />
             <main style={{ ...styles.main, maxWidth: '100%', padding: '0' }}>
                 {activePage === 'dashboard' && <AdminDashboardPage stats={stats} loading={statsLoading} />}
-                {/* {activePage === 'users'     && <AdminUsersPage />}
-                {activePage === 'listings'  && <AdminListingsPage />}
+                {activePage === 'users'     && <AdminUsersPage />}
+                {/* {activePage === 'listings'  && <AdminListingsPage />}
                 {activePage === 'bookings'  && <AdminBookingsPage />}
                 {activePage === 'settings'  && <AdminSettingsPage user={user} />} */}
             </main>
